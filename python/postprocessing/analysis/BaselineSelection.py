@@ -35,8 +35,8 @@ def second_smallest(numbers):
 
 class BaselineSelection(Module):
     def __init__(self):
-        self.workingonS = True
-        self.runcount = ["QCDbEnr_HT100to200_file1.root":1567593, "QCDbEnr_HT100to200_file2.root":1371694, "QCDbEnr_HT100to200_file3.root":1385847, "QCDbEnr_HT200to300_file1.root":1259684, "QCDbEnr_HT200to300_file2.root":1349109, "QCDbEnr_HT200to300_file3.root":1160070, "QCDbEnr_HT300to500_file1.root":1100312, "QCDbEnr_HT300to500_file2.root":843531, "QCDbEnr_HT500to700.root":968568, "QCDbEnr_HT700to1000.root":510681, "QCDbEnr_HT1000to1500_file1.root":49559, "QCDbEnr_HT1000to1500_file2.root":46801, "QCDbEnr_HT1500to2000.root":187594, "QCDbEnr_HT2000toInf.root":151292, "WminusH_HToBB_WToQQ_M125":484662, "WplusH_HToBB_WToQQ_M125":504997]
+        self.workingonS = False
+        self.runcount = {"QCDbEnr_HT100to200_file1.root":1567593, "QCDbEnr_HT100to200_file2.root":1371694, "QCDbEnr_HT100to200_file3.root":1385847, "QCDbEnr_HT200to300_file1.root":1259684, "QCDbEnr_HT200to300_file2.root":1349109, "QCDbEnr_HT200to300_file3.root":1160070, "QCDbEnr_HT300to500_file1.root":1100312, "QCDbEnr_HT300to500_file2.root":843531, "QCDbEnr_HT500to700.root":968568, "QCDbEnr_HT700to1000.root":510681, "QCDbEnr_HT1000to1500_file1.root":49559, "QCDbEnr_HT1000to1500_file2.root":46801, "QCDbEnr_HT1500to2000.root":187594, "QCDbEnr_HT2000toInf.root":151292, "WminusH_HToBB_WToQQ_M125":484662, "WplusH_HToBB_WToQQ_M125":504997}
 
         pass
     def beginJob(self):
@@ -75,9 +75,16 @@ class BaselineSelection(Module):
 
         self.out.branch("nmatch", "I") # number of candidates, min 1
         self.out.branch("recon_WJets_id", "I", lenVar=str(2)) #original ids of Jets picked for w reconstruction
-        self.out.branch("recon_WMass", "F")
+        self.out.branch("recon_Wmass", "F")
         self.out.branch("Jet_HT","F"); # Sum of transverse P of all Jets
         self.out.branch("nJets", "F"); # number of Jets in this event
+        
+        self.out.branch("recon_Hpt", "F") # pt of reconstructed H
+        self.out.branch("recon_Wpt", "F") # pt of reconstructed W
+        self.out.branch("recon_Heta", "F") # eta of reconstructed H
+        self.out.branch("recon_Weta", "F") # ...
+        self.out.branch("deltaR_reconHW", "F") # deltaR between H and W
+
         #self.out.branch("fatjetsused", "I") # wheter or not a bjet fat jet was used for calculation of H_mass
         
         self.out.branch("deltaR_bb", "F"); # deltaR of reconstructed btagged Jets used for H mass calculation 
@@ -116,9 +123,9 @@ class BaselineSelection(Module):
         # just for easier debugging when needed
         prterrmsg = False
         
-        #self.numevents +=1
-        #if self.numevents %10 !=0:
-            #return False
+        self.numevents +=1
+        if self.numevents %100 !=0:
+            return False
         
         
         # calculating the weights and wether it is signal or not -------------------------------------------------------
@@ -127,7 +134,7 @@ class BaselineSelection(Module):
         
         for i in weights.keys():
             if i in self.infl:
-                for j in self.runcount.keys().
+                for j in self.runcount.keys():
                     if j in self.infl:
                         self.out.fillBranch("weight", weights[i]*luminosity/self.runcount[j])
                         break
@@ -312,6 +319,8 @@ class BaselineSelection(Module):
                 helper = helper2+helper3
                 s = max(enumerate(helper), key=itemgetter(1))[0]
                 
+                
+                
                 """ # further analysis for picking favorite candidates when selection isn't unique
                 helper = np.array(np.array(selBJets)[indexes1[:poss]])
                 helper1 = np.array(np.array(selBJets)[indexes2[:poss]])
@@ -465,6 +474,7 @@ class BaselineSelection(Module):
                         Wind2.append(i)
                                     
             Wind = min(enumerate(abs(np.array(Wmasses)-80)), key=itemgetter(1))[0]
+            W4 = tmp[Wind1[Wind]].p4()+tmp[Wind2[Wind]].p4()
             deltaRW = np.sqrt((tmp[Wind1[Wind]].eta-tmp[Wind2[Wind]].eta)**2+(tmp[Wind1[Wind]].phi-tmp[Wind2[Wind]].phi)**2)
             deltapt = np.sqrt((tmp[Wind1[Wind]].pt - tmp[Wind2[Wind]].pt)**2)
             
@@ -481,7 +491,10 @@ class BaselineSelection(Module):
                 self.out.fillBranch("wisright", isrights)
             
             
-            self.out.fillBranch("recon_WMass", Wmasses[Wind])
+            self.out.fillBranch("recon_Wmass", Wmasses[Wind])
+            self.out.fillBranch("recon_Wpt", W4.Pt())
+            self.out.fillBranch("recon_Weta", W4.Eta())
+            
             self.out.fillBranch("deltaR_W", deltaRW)
             self.out.fillBranch("deltaPT_W", deltapt)
             
@@ -504,7 +517,12 @@ class BaselineSelection(Module):
                 self.out.fillBranch("hisright",hright)
             #self.out.fillBranch("fatjetsused", 0)
             
+            H4 = selBJets[indexes1[s]].p4()+selBJets[indexes2[s]].p4()
+            
             self.out.fillBranch("recon_Hmass", hmasses[s])   
+            self.out.fillBranch("recon_Hpt", H4.Pt())
+            self.out.fillBranch("recon_Heta", H4.Pt())
+            self.out.fillBranch("deltaR_reconHW", H4.DeltaR(W4))
             
             tmp123 = np.array([jets.index(selBJets[indexes1[s]]), jets.index(selBJets[indexes2[s]])], dtype=int)#need to transform index to original ones
             self.out.fillBranch("recon_bjet_id", tmp123) 
