@@ -23,14 +23,16 @@ def createAxisHists(n,src,xmin=0,xmax=499):
   return result
 
 def createTH1F(tree, varname,  bins, constraints="", dif = "", normalise = False):
-    # get entries only using elements with reasonable value
+    #! returns th1f files as well as number of entries before and after applying the suggested entries
+    
+    #* get entries only using elements with reasonable value
     tmp1 = ROOT.TH1F("tmp", "tmp",len(bins)-1,bins)
     tmp1.Sumw2()
     tree.Draw(varname+">>tmp")#, varname+"!=-999")
     before = int(tmp1.GetEntries())
     del(tmp1)
     
-    #normal creating TH1F
+    #* normal creating TH1F
     tmp = ROOT.TH1F(varname.lower()+"_"+''.join(e for e in constraints if e.isalnum())+dif, varname.lower()+"_"+''.join(e for e in constraints if e.isalnum())+dif,len(bins)-1,bins)
     tmp.Sumw2()
     after = tmp.GetEntries()
@@ -113,16 +115,64 @@ def saveTH2Fplot(hist, xtitle, ytitle):
     #del(axish)
     
 
-def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = []):
-    hist.SetLineColor(linecolor)
+def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [], log = False, ytitle = "Entries"):    
+    
     canvas = ROOT.TCanvas("c1","c1")
     pads = plot.OnePad()
     axish = createAxisHists(1,hist,hist.GetXaxis().GetXmin(),hist.GetXaxis().GetXmax()-0.01)
     axish[0].GetYaxis().SetRangeUser(0,1.5*hist.GetMaximum())
     axish[0].GetXaxis().SetTitle(xtitle)
-    axish[0].GetYaxis().SetTitle("Entries")
+    axish[0].GetYaxis().SetTitle(ytitle)
     pads[0].cd()
-    axish[0].Draw()
+    
+    if log:
+        count1 = 0
+        count2 = 0
+        hist1bins = []
+        hist1y = []
+        hist2bins = []
+        hist2y = []
+        for i in range(hist.GetNbinsX()):
+            # create arrays which describe new histogram having no zero entries for log scale
+            if hist.GetBinContent(i+1)==0:
+                if count1==0:
+                    hist1bins.append(hist.GetXaxis().GetBinLowEdge(i+1))
+                count1+=1
+            else:
+                if count1!=0:
+                    hist1y.append(hist.GetBinContent(i+1)/count1)
+                    count1 = 0
+                else:
+                    hist1y.append(hist.GetBinContent(i+1))
+                    hist1bins.append(hist.GetXaxis().GetBinLowEdge(i+1))
+            
+            
+        if count1!=0:
+            hist1y[-1] = hist1y[-1]/count1
+            del(hist1bins[-1])
+
+        hist1bins.append(hist.GetXaxis().GetXmax())
+        histtitle = hist.GetTitle()
+        del(hist)
+        hist = ROOT.TH1F(histtitle, histtitle, len(hist1y), np.array(hist1bins))
+        for i in range(len(hist1y)):
+            hist.SetBinContent(i+1, hist1y[i])
+
+
+        pads[0].SetLogy()
+        hist.GetYaxis().SetTitle(ytitle)
+        hist.GetYaxis().SetRangeUser(1,100*hist.GetMaximum())
+        hist.GetXaxis().SetTitle(xtitle)
+        
+        hist.Sumw2()
+    else:
+        axish[0].Draw()
+
+
+    hist.SetLineColor(linecolor)
+    hist.SetMarkerStyle(20)
+    hist.SetMarkerColor(linecolor+3)
+
     hist.Draw("LSAME")
     if len(stats)==2:
         latex = ROOT.TText(.5,.5, "selected {} of {}".format(int(stats[1]), stats[0]))
@@ -131,14 +181,16 @@ def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [
         latex.SetTextSize(20)
         latex.SetTextFont(43)
         latex.Draw("SAME")
-        
+        text
     if title!="":
-        text = ROOT.TText(.5,.5, title)
-        text.SetX(hist.GetXaxis().GetXmin()+0.1*abs(hist.GetXaxis().GetXmax()-hist.GetXaxis().GetXmin()))
-        text.SetY(1.55*hist.GetMaximum())
-        text.SetTextSize(20)
-        text.SetTextFont(43)
-        text.Draw("SAME")
+        text2 = ROOT.TText(.5,.5, title)
+        text2.SetNDC() #so it orientates on the canvas
+        text2.SetX(0.25)
+        text2.SetY(0.95)
+        text2.SetTextSize(20)
+        text2.SetTextFont(43)
+        text2.Draw("SAME")
+    
         
     
 
@@ -151,16 +203,30 @@ def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [
     del(axish,pads, legend)
 
 
-def calc_AMS(hist1,hist2, error=0, rd=0, AMSmod = 1):
+def calc_AMS(hist1,hist2, error=0, rd=-1, AMSmod = 1): # * calculate ams value of 2 histograms, first hist is signal
     final = 0
+    rest = 0
     for i in range(hist1.GetNbinsX()):
-        if hist1.GetBinContent(i)!=0 and hist1.GetBinContent(i)!=0:
-            final+= ROOT.RooStats.AsimovSignificance(hist1.GetBinContent(i), hist2.GetBinContent(i), error)**2 # last entry is error, maybe add statistical error of histogramms
+        if hist2.GetBinContent(i+1)!=0:
+            final+= ROOT.RooStats.AsimovSignificance(hist1.GetBinContent(i+1)+rest, hist2.GetBinContent(i+1), error)**2 # last entry is error, maybe add statistical error of histogramms
+            rest = 0
+        else:
+            rest+=hist1.GetBinContent(i+1)
     final = np.sqrt(final*AMSmod)
-    final = round(final, rd)
+    if rd == -1:
+        if final<10 and final>1:
+            final = round(final, 2)
+        elif final<1:
+            final = round(final,3)
+        elif final>10 and final<100:
+            final = round(final, 1)
+        elif final>100:
+            final = int(final)
+    else:
+        final = round(final, rd)
     return(final)
 
-def savegraph( datax, datay, title, xtitle, ytitle,  text = "", heading = ""):
+def savegraph( datax, datay, title, xtitle, ytitle,  text = "", heading = "" ): # get x and y data and plot it
     c1 = ROOT.TCanvas( 'c1', 'c1' )
 
     
@@ -207,7 +273,106 @@ def savegraph( datax, datay, title, xtitle, ytitle,  text = "", heading = ""):
     c1.Close()
     del(gr)
 
-def saveratioplot(hist1, hist2, xtitle, title1, title2, title = "", linecolor1=ROOT.kRed, linecolor2=ROOT.kBlue, stats = [], dif="", calcArea=True, calcAMS=False, AMSmod=1, rdAMS = 0):
+def saveratioplot(hist1, hist2, xtitle, title1, title2, title = "", linecolor1=ROOT.kRed, return_area=False,
+linecolor2=ROOT.kBlue, stats = [], dif="", calcArea=False, calcAMS=False, AMSmod=1, text="", y_label = "Entries", ratio = True, log = False, name = ""):
+
+    canvas = ROOT.TCanvas("c1","c1")
+
+    axish = createAxisHists(2,hist1,hist1.GetXaxis().GetXmin(),hist1.GetXaxis().GetXmax()-0.01)
+    axish[0].GetYaxis().SetRangeUser(0,1.5*max([hist1.GetMaximum(), hist2.GetMaximum()]))
+    axish[0].GetYaxis().SetTitle(y_label)
+
+
+    if ratio == True:
+        ratio_central = plot.MakeRatioHist(hist1,hist2,True,False) # creates the histogram; takes two histograms; dont know what the boolean values mean tough
+        pads = plot.TwoPadSplit(0.29,0.01,0.01)
+        axish[0].GetXaxis().SetTitleSize(0)
+        axish[0].GetXaxis().SetLabelSize(0)
+        axish[1].GetXaxis().SetTitle(xtitle)
+        axish[1].GetYaxis().SetTitle("Ratio")
+        axish[1].GetYaxis().SetRangeUser(0.2,1.8)
+        pads[1].cd()
+        axish[1].Draw()
+        ratio_central.SetLineColor(linecolor1)
+        ratio_central.SetMarkerColor(linecolor2)
+        ratio_central.Draw("SAME")
+    else:
+        axish[0].GetXaxis().SetTitle(xtitle)
+        pads = plot.OnePad()
+
+    pads[0].cd()
+
+    if calcAMS:
+        AMS = calc_AMS(hist1, hist2, AMSmod=AMSmod)
+
+    if log:
+        count1 = 0
+        count2 = 0
+        hist1bins = []
+        hist1y = []
+        hist2bins = []
+        hist2y = []
+        for i in range(hist1.GetNbinsX()):
+            # create arrays which describe new histogram having no zero entries for log scale
+            if hist1.GetBinContent(i+1)==0:
+                if count1==0:
+                    hist1bins.append(hist1.GetXaxis().GetBinLowEdge(i+1))
+                count1+=1
+            else:
+                if count1!=0:
+                    hist1y.append(hist1.GetBinContent(i+1)/count1)
+                    count1 = 0
+                else:
+                    hist1y.append(hist1.GetBinContent(i+1))
+                    hist1bins.append(hist1.GetXaxis().GetBinLowEdge(i+1))
+            
+            if hist2.GetBinContent(i+1)==0:
+                if count2==0:
+                    hist2bins.append(hist2.GetXaxis().GetBinLowEdge(i+1))
+                count2+=1
+            else:
+                if count2!=0:
+                    hist2y.append(hist2.GetBinContent(i+1)/count2)
+                    count2 = 0
+                else:
+                    hist2y.append(hist2.GetBinContent(i+1))
+                    hist2bins.append(hist2.GetXaxis().GetBinLowEdge(i+1))
+        
+        if count1!=0:
+            hist1y[-1] = hist1y[-1]/count1
+            del(hist1bins[-1])
+        if count2!=0:
+            hist2y[-1] = hist2y[-1]/count2
+            del(hist2bins[-1])
+        hist1bins.append(hist1.GetXaxis().GetXmax())
+        hist2bins.append(hist2.GetXaxis().GetXmax())
+        
+        histtitle1 = hist1.GetTitle()
+        histtitle2 = hist2.GetTitle()
+
+        
+        del(hist1, hist2)
+        hist1 = ROOT.TH1F(histtitle1, histtitle1, len(hist1y), np.array(hist1bins))
+        hist2 = ROOT.TH1F(histtitle2, histtitle2, len(hist2y), np.array(hist2bins))
+        for i in range(len(hist1y)):
+            hist1.SetBinContent(i+1, hist1y[i])
+        for i in range(len(hist2y)):
+            hist2.SetBinContent(i+1, hist2y[i])
+
+        pads[0].SetLogy()
+        hist1.GetYaxis().SetTitle(y_label)
+        if log:
+            hist1.GetYaxis().SetRangeUser(1,max([hist1.GetMaximum(), hist2.GetMaximum()])**(3/2))
+        else:
+            hist1.GetYaxis().SetRangeUser(0,1.5*max([hist1.GetMaximum(), hist2.GetMaximum()]))
+        hist1.GetXaxis().SetTitle(xtitle)
+        
+        hist1.Sumw2()
+        hist2.Sumw2()
+    else:
+        axish[0].Draw()
+
+
     hist1.SetLineColor(linecolor1)
     hist1.SetMarkerStyle(20)
     hist1.SetMarkerColor(linecolor1+3)
@@ -215,46 +380,29 @@ def saveratioplot(hist1, hist2, xtitle, title1, title2, title = "", linecolor1=R
     hist2.SetLineColor(linecolor2)
     hist2.SetMarkerColor(linecolor2+3)
 
-    ratio_central = plot.MakeRatioHist(hist1,hist2,True,False) # creates the histogram; takes two histograms; dont know what the boolean values mean tough
-
-    canvas = ROOT.TCanvas("c1","c1")
-    pads = plot.TwoPadSplit(0.29,0.01,0.01)
-    axish = createAxisHists(2,hist1,hist1.GetXaxis().GetXmin(),hist1.GetXaxis().GetXmax()-0.01)
-
-    axish[0].GetYaxis().SetRangeUser(0,1.5*hist1.GetMaximum())
-    axish[0].GetYaxis().SetTitle("Entries")
-    axish[0].GetXaxis().SetTitleSize(0)
-    axish[0].GetXaxis().SetLabelSize(0)
-    axish[1].GetXaxis().SetTitle(xtitle)
-    axish[1].GetYaxis().SetTitle("Ratio")
-    axish[1].GetYaxis().SetRangeUser(0.2,1.8)
 
 
-    pads[0].cd()
-    axish[0].Draw()
+
     hist1.Draw("SAME")#both histograms are drawn into the same pad
     hist2.Draw("SAME")
+        
+
     legend = plot.PositionedLegend(0.4, 0.15, 3, 0.015)
     legend.AddEntry(hist1, title1)
     legend.AddEntry(hist2, title2)
     legend.Draw("SAME")
-
-    pads[1].cd()
-    axish[1].Draw()
-    ratio_central.SetLineColor(linecolor1)
-    ratio_central.SetMarkerColor(linecolor2)
-    ratio_central.Draw("SAME")
     
-    # calculating ams value
+    
+    #calculating enclosed areas
     if calcArea:
         final = 0
         for i in range(hist1.GetNbinsX()):
-            #final+= min(hist1.GetBinContent(i), hist2.GetBinContent(i)) # last entry is error, maybe add statistical error of histogramms
-            final+= hist1.GetBinContent(i)
+            final+= min(hist1.GetBinContent(i+1), hist2.GetBinContent(i+1)) 
+            #final+= hist1.GetBinContent(i)
             #if "Jet_btagDeepB" == xtitle:
                 #print(hist2.Integral())
         final = round(final, 2)
-        text1 = ROOT.TText(.5,.5, "Congruent Area: "+str(final))
+        text1 = ROOT.TText(.5,.5, "Overlapping Area: "+str(final))
         text1.SetNDC() #so it orientates on the canvas
         text1.SetX(0.18)
         text1.SetY(0.88)
@@ -262,23 +410,35 @@ def saveratioplot(hist1, hist2, xtitle, title1, title2, title = "", linecolor1=R
         text1.SetTextFont(43)
         text1.Draw("SAME")
 
+    if return_area:
+        return final
+
+    # calculating ams value
     if calcAMS:
-        final = calc_AMS(hist1, hist2, AMSmod=AMSmod, rd=rdAMS)
-        if rdAMS<=0:
-            text1 = ROOT.TText(.5,.5, "AMS: "+str(int(final)))
-        else:
-            text1 = ROOT.TText(.5,.5, "AMS: "+str(final))
+        # if rdAMS<=0:
+        #     text1 = ROOT.TText(.5,.5, "AMS: "+str(int(final)))    
+        text1 = ROOT.TText(.5,.5, "AMS: "+str(AMS))
         text1.SetNDC() #so it orientates on the canvas
         text1.SetX(0.18)
         text1.SetY(0.88)
         text1.SetTextSize(20)
         text1.SetTextFont(43)
         text1.Draw("SAME")
+
+    if text!="":
+        text1 = ROOT.TText(.5,.5, text)
+        text1.SetNDC() #so it orientates on the canvas
+        text1.SetX(0.18)
+        text1.SetY(0.88)
+        text1.SetTextSize(20)
+        text1.SetTextFont(43)
+        text1.Draw("SAME")
+    
 
         
     
 
-    
+    # print("signal integral {}, background integral {}".format(hist1.Integral(), hist2.Integral()))
 
     pads[0].cd()
     pads[0].GetFrame().Draw() #
@@ -297,48 +457,145 @@ def saveratioplot(hist1, hist2, xtitle, title1, title2, title = "", linecolor1=R
         text.SetNDC() #so it orientates on the canvas
         text.SetX(0.25)
         text.SetY(0.95)
-        text.SetTextSize(22)
+        text.SetTextSize(20)
         text.SetTextFont(43)
         text.Draw("SAME")
     
     diff = ''.join(e for e in dif if e.isalnum())
-    canvas.SaveAs(xtitle+"_"+title1+"_"+title2+"_"+diff+"_ratio.pdf")
+    if name == "":
+        canvas.SaveAs(xtitle+"_"+title1+"_"+title2+"_"+diff+"_ratio.pdf")
+    else:
+        canvas.SaveAs(name+".pdf")
     canvas.Close()
-    del(axish,pads,legend,ratio_central, canvas)
+    del(pads,legend, canvas)
 
 if __name__=="__main__":
     # ------------------------------------------------------------------------------------
     # reading in data and definitions
 
     # var = [0"Jet_pt", 1"Jet_phi", 2"Jet_eta", 3"deltaR", 4"recon_Hmass", 5"nJets", 6"MET_pt", 7"fatjetsused", 8"original_Hmass", 9"genjets_Hmass", 10"nrightjets", 11"Jet_btagDeepB", 12"nmatch", 13"candidate_score_1", 14"wnrightjets", 15"genjets_deltaR_W", 16"recon_WMass", 17"genjets_WMass", 18"wnrightjets_bad"] "original_Hmass" , "nrightjets", "candidate_score_", "wnrightjets", "genjets_deltaR_W", "genjets_WMass", "wnrightjets_bad", "genjets_Hmass", "fatjetsused"
-    var = ["Jet_pt",  "Jet_eta", "deltaR_bb", "recon_Hmass", "nJets", "MET_pt" ,  "Jet_btagDeepB", "nmatch",    "recon_Wmass",  "Jet_HT", "deltaR_W", "recon_Hpt", "recon_Wpt", "recon_Weta", "deltaR_reconHW"]
+    var = ["Jet_pt",  "Jet_eta", "deltaR_bb", "recon_Hmass", "nJets", "MET_pt" ,  "Jet_btagDeepB", "nmatch",    
+    "recon_Wmass",  "Jet_HT", "deltaR_W", "recon_Hpt", "recon_Wpt", "recon_Weta", "deltaR_reconHW", "MET_pt", "nSoftActivityJet"]
 
     #var = ["Jet_btagDeepC", "Jet_mass", "Jet_nElectrons", "Jet_hadronFlavour"]
     
-    ranges = {"Jet_pt":np.linspace( 0,200, 40), "Jet_phi":np.linspace(-4,4,20), "Jet_eta":np.linspace(-4,4,20), "deltaR_bb":np.linspace(0,6,50), "recon_Hmass":np.linspace(75, 160, 60), "nJets":np.linspace(3.5,12.5,10), "MET_pt":np.linspace(0,150,40), "fatjetsused":np.linspace(0,2,3), "original_Hmass":np.linspace(0,200,50), "genjets_Hmass:":np.linspace(50, 200, 50), "nrightjets":np.linspace(-0.5,2.5,4), "Jet_btagDeepB":np.linspace(0.5,1,50), "nmatch":np.linspace(1.5,6.5,6), "candidate_score_1":np.linspace(1.6,8,20), "wnrightjets":np.linspace(-0.5,2.5,4), "genjets_deltaR_W":np.linspace(0,10,20), "recon_Wmass":np.linspace(0,150, 40), "genjets_WMass":np.linspace(0,150, 40), "wnrightjets_bad":np.linspace(-0.5,2.5,4), "Jet_HT":np.linspace(100, 600, 70), "weight":np.linspace(0, 10, 50), "deltaPT_W":np.linspace(0, 300, 50), "deltaR_W":np.linspace(0,7,50), "recon_Wpt":np.linspace(0,200,50), "recon_Hpt":np.linspace(0,200,50), "recon_Heta":np.linspace(-3,3,20), "recon_Weta":np.linspace(.3,3), "deltaR_reconHW":np.linspace(0.5,4.5,50), "Jet_btagDeepC":np.linspace(0,1,30), "Jet_mass":np.linspace(20,100,70), "Jet_nElectrons":np.linspace(-0.5,5.5,7), "Jet_hadronFlavour":np.linspace(-20,20,42)}
+    ranges = {"Jet_pt":np.linspace( 0,200, 40), "Jet_phi":np.linspace(-4,4,20), "Jet_eta":np.linspace(-4,4,20), 
+    "deltaR_bb":np.linspace(0,6,50), "recon_Hmass":np.linspace(90, 140, 15), "nJets":np.linspace(3.5,12.5,10), 
+    "MET_pt":np.linspace(0,250,70), "fatjetsused":np.linspace(0,2,3), "original_Hmass":np.linspace(0,200,50), 
+    "genjets_Hmass:":np.linspace(50, 200, 50), "nrightjets":np.linspace(-0.5,2.5,4), "Jet_btagDeepB":np.linspace(0.5,1,50), 
+    "nmatch":np.linspace(1.5,6.5,6), "candidate_score_1":np.linspace(1.6,8,20), "wnrightjets":np.linspace(-0.5,2.5,4), 
+    "genjets_deltaR_W":np.linspace(0,10,20), "bckgrdrecon_Wmass":np.linspace(0,150, 15), "genjets_WMass":np.linspace(0,150, 40), 
+    "wnrightjets_bad":np.linspace(-0.5,2.5,4), "Jet_HT":np.linspace(100, 600, 70), "weight":np.linspace(0, 10, 50), 
+    "deltaPT_W":np.linspace(0, 300, 50), "deltaR_W":np.linspace(0,7,50), "recon_Wpt":np.linspace(0,200,50), 
+    "recon_Hpt":np.linspace(0,200,50), "recon_Heta":np.linspace(-3,3,20), "recon_Weta":np.linspace(.3,3), 
+    "deltaR_reconHW":np.linspace(0.5,4.5,50), "Jet_btagDeepC":np.linspace(0,1,30), "Jet_mass":np.linspace(20,100,70), 
+    "Jet_nElectrons":np.linspace(-0.5,5.5,7), "Jet_hadronFlavour":np.linspace(-20,20,42), "nSoftActivityJet":np.linspace(-0.5,10.5,12),
+    "recon_Wmass":np.linspace(20, 140, 15)}
 
     triggers = ["HLT_AK8PFJet80",  "HLT_PFJet80", "HLT_PFHT300PT30_QuadPFJet_75_60_45_40", "HLT_DiPFJetAve35_HFJEC",  "HLT_PFHT180", "HLT_DoublePFJets40_CaloBTagCSV_p33",  "HLT_AK4PFJet80", "HLT_AK4CaloJet80"]
-    selected_triggers = ["HLT_PFHT300PT30_QuadPFJet_75_60_45_40", "HLT_PFJet80", "HLT_PFHT180" ]
+    selected_triggers = ["HLT_PFHT300PT30_QuadPFJet_75_60_45_40"]#, "HLT_PFHT180" ]
 
     standardconstraintsH = "deltaR_bjet1 < .3 && deltaR_bjet2 < .3" #first selection is to used to ensure that i can connect the genpart level with the genjet level properly; 
     testing_constraints = "deltaR_bb<1. && deltaR_bb>.0"
     
     standardconstraintsW = "deltaR_W_jet1< .5 && deltaR_W_jet2 < .5"
 
-    infile = ROOT.TFile.Open("../background/bckgrd.root")
+    infile = ROOT.TFile.Open("../classifiers/data/breg/bckgrd.root")
     bckgrd = infile.Get("Events")
     
-    infile2 = ROOT.TFile.Open("../signal/signal.root")
+    infile2 = ROOT.TFile.Open("../classifiers/data/breg/signal.root")
     signal = infile2.Get("Events")
     
     #infile = ROOT.TFile.Open("../WplusH_HToBB_WToQQ_M125_Skim.root")
-    #signal = infile.Get("Events")
+    #signal = infile.Get("Events")enumerate
 
     #infile1 = ROOT.TFile.Open("../WminusH_HToBB_WToQQ_M125_Skim.root")
     #signal1 = infile1.Get("Events")
+
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! random stuff -----------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    """
+    var = "deltaR_bb"
+    signal1, _ = createTH1F(signal, var, ranges[var], "weight", dif = "signal", normalise = True)
+    bckgrd1, _ = createTH1F(bckgrd, var, ranges[var], "weight", normalise = True)
+    saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False)
+    """
+    """
+    further_variables = {"Jet_hadronFlavour":np.linspace(-0.5, 6.5, 8),
+    "Jet_btagDeepC":np.linspace(0,1,20), "Jet_mass":np.linspace(0,300, 30)}
+
+    ranges.update(further_variables)
+
+    for var in further_variables.keys():        
+        signal1, _ = createTH1F(signal, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", dif = "signal", normalise = True)
+        bckgrd1, _ = createTH1F(bckgrd, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", normalise = True)
+        saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False)
+
+    """
+    #### recon_WJets_id, recon_bjet_id
+    #for futher input W Jet_neEmEF, W Jet_neHEF, W Jet_qgl, ?H Jet_qgl, ? W Jet_nConstituents ?, ?Jet-HT?
+
+    var = "Jet_btagDeepB"
     
-    # ------------------------------------------------------------------------------------
-    # interesting constraints:
+    ranges.update({"Jet_chEmEF":np.linspace(0,1,20), "Jet_chHEF":np.linspace(0,1,20), "Jet_nConstituents":np.linspace(0, 60, 30),
+    "Jet_neEmEF":np.linspace(0,1,20), "Jet_neHEF":np.linspace(0,1,20),"Jet_qgl":np.linspace(-1,1,30),
+    "Jet_nElectrons":np.linspace(0,5,6), "Jet_nMuons":np.linspace(0,5,6), "Jet_HT":np.linspace(0,700,30)})
+
+    signal1, _ = createTH1F(signal, "{}[recon_WJets_id[0]]".format(var), ranges[var], "weight", dif = "signal", normalise = True)
+    bckgrd1, _ = createTH1F(bckgrd, "{}[recon_WJets_id[0]]".format(var), ranges[var], "weight", normalise = True)
+    saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_W".format(var))
+    del(signal1, bckgrd1)
+    signal1, _ = createTH1F(signal, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", dif = "signal", normalise = True)
+    bckgrd1, _ = createTH1F(bckgrd, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", normalise = True)
+    saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_H".format(var))
+
+
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! create plots of genlevel data and reconlevel data ----------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    """
+    var = "deltaR_bb"
+    signal1, _ = createTH1F(signal, "recon_Hmass", np.linspace(0,400, 50), "(nrightjets>1)*weight", dif = "signal")
+    bckgrd1, _ = createTH1F(signal, "recon_Wmass", np.linspace(0,400, 50), "(nrightjets>1)*weight")
+    saveratioplot(signal1, bckgrd1,"W mass", "gen-level", "recon-level", calcArea = False, ratio = False, log = True)
+    
+    """
+
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! creating plots of no selection applied and calculate AMS value: (now triggers are applied additionally)
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    """
+    var = "recon_Hmass"
+    # "({}>0)*weight".format(j)
+    # "weight"
+
+
+    for j in selected_triggers:
+        signal1, _ = createTH1F(signal, var, ranges[var], "({}>0)*weight".format(j) , dif = "signal")
+        bckgrd1, _ = createTH1F(bckgrd, var, ranges[var], "({}>0)*weight".format(j))
+        signal1.Add(bckgrd1)
+        saveplot(signal1, var,  "signal + background", title = j)
+        #AMS = calc_AMS(signal1, bckgrd1)
+        #del(signal1, bckgrd1)
+        #signal1, _ = createTH1F(signal, var, ranges[var], "weight", normalise = True, dif = "signal")
+        #bckgrd1, _ = createTH1F(bckgrd, var, ranges[var], "weight", normalise = True)
+        #saveratioplot(signal1, bckgrd1, var, "signal", "background", calcArea = False, text = "AMS {}".format(AMS), dif = j)
+        del(signal1, bckgrd1)
+    """
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* interesting constraints:
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+
+
     # "deltaR_bjet1 < .3 & deltaR_bjet2 < .3" # deltar between genjet and genpart b is not allowed to be too big
     # "nrightjets == 2" # right jets used
     # "MET_pt<70" # Missing Energy is supposed to not be too big
@@ -350,12 +607,13 @@ if __name__=="__main__":
     #print("signal {}; background {}".format(tmp2.Integral(), tmp1.Integral() ))
     
     #showing smooth transition of LHE_HT ()
-    #tmp1, stats1 = createTH1F(bckgrd,"LHE_HT",np.linspace(0,800,100), constraints= "weight", dif="bckgrd")
-    #saveplot(tmp1, "LHE_HT")
+
+    # tmp1, stats1 = createTH1F(bckgrd,"LHE_HT",np.linspace(300,800,100), constraints= "weight", dif="bckgrd")
+    # saveplot(tmp1, "LHE_HT", log = True)
     
 
-    cur1= 10
-    cur2 =14
+    # cur1= 10
+    # cur2 =14
     
     #signal1, stats1 = createTH1F(signal ,"nrightjets", ranges["nrightjets"])
     #saveplot(signal1, "nrightjets", title = "H Jets")
@@ -395,6 +653,20 @@ if __name__=="__main__":
                     len(binsx)-1,binsx, len(binsy)-1, binsy)
     tmp.Sumw2()
 
+    #signal = infile.Get("Events")enumerate
+
+    #infile1 = ROOT.TFile.Open("../WminusH_HToBB_WToQQ_M125_Skim.root")
+    #signal1 = infile1.Get("Events")
+    
+    #* ------------------------------------------------------------------------------------
+    #* interesting constraints:
+
+
+
+    # "deltaR_bjet1 < .3 & deltaR_bjet2 < .3" # deltar between genjet and genpart b is not allowed to be too big
+    # "nrightjets == 2" # right jets used
+    # "MET_pt<70" # Missing Energy is supposed to not be too big
+    # "fatjetsused == 0" # no fatjets are used
     for s in range(tree.GetEntries()):
         tree.GetEntry(s)
         elementx = getattr(tree, varnamex)
@@ -415,12 +687,35 @@ if __name__=="__main__":
     # check wether there is a shape changing regarding triggers:
     
     #i = "recon_Hmass"
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
-    # checking trigger ratios (again) -----------------------------------------------------------
-    # little bit of an overkill here but one has to be careful since some bins are not displayed in the histogram
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
+
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #! creating plots for presentation -> showing distribution of signal AND background, and both normalised
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    """
+    rangeH = np.linspace(90, 140, 15)
+
+    for j in selected_triggers:
+        signal1, trash = createTH1F(signal, "recon_Hmass", ranges["recon_Hmass"], constraints= "("+j+">0)*weight", dif = "signal")
+        bckgrd1, trash = createTH1F(bckgrd, "recon_Hmass", ranges["recon_Hmass"], constraints= "("+j+">0)*weight", dif = "bckgrd")
+        AMSval = calc_AMS(signal1, bckgrd1)
+        signal1.Add(bckgrd1)
+        saveplot(signal1, "recon_Hmass", "Data", j)
+
+        del(signal1, bckgrd1)
+        signal1, trash = createTH1F(signal, "recon_Hmass", ranges["recon_Hmass"], constraints= "("+j+">0)*weight", dif = "signal", normalise=True)
+        bckgrd1, trash = createTH1F(bckgrd, "recon_Hmass", ranges["recon_Hmass"], constraints= "("+j+">0)*weight", dif = "bckgrd", normalise=True)
+        saveratioplot(signal1, bckgrd1, "recon_Hmass", "Signal", "Background", calcArea=False, text = "AMS: {}".format(AMSval), dif=j)
+        del(signal1, bckgrd1)
+
+    """
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #! checking trigger ratios (again) -----------------------------------------------------------
+    #! little bit of an overkill here but one has to be careful since some bins are not displayed in the histogram
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
     
     """
     for j in triggers:
@@ -438,17 +733,18 @@ if __name__=="__main__":
         print(ints1/ints2, intb1/intb2)
     """    
     
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------        
-    # checking PDFS for signal and background for variables for selected triggers including only the selection for selected Jets only -----------------------------------------
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
-    
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------        
+    #! checking PDFS for signal and background for variables for selected triggers including only the selection for selected Jets only -----------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    """
+    os.chdir("documentation/selectingparameters/lessbins")
     cuts = ""
     #cuts = "deltaR_reconHW <4.5 && deltaR_reconHW>2. &&"
     for j in selected_triggers:
             for i in var:
-                if "Jet" in i and i!="Jet_HT" and i!="nJets":
+                if "Jet" in i and i!="Jet_HT" and i!="nJets" and i!="nSoftActivityJet":
                     signal1, trash = createTH1F(signal, i+"[recon_bjet_id[0]]", ranges[i],constraints= "("+cuts+j+">0)*weight", normalise = True, dif=str(np.random.rand()))
                     signal2, trash = createTH1F(signal, i+"[recon_bjet_id[1]]", ranges[i], constraints= "("+cuts+j+">0)*weight", normalise = True, dif=str(np.random.rand()))
 
@@ -485,8 +781,6 @@ if __name__=="__main__":
                     del(signal2, bckgrd2, signal4 ,bckgrd4)
                     
                     
-
-                    
                     saveratioplot(signal1, bckgrd1, i, "signal", "background", title = j+ "; only H Jets", dif = j+"onlyH")
                     saveratioplot(signal3, bckgrd3, i, "signal", "background", title = j+ "; only W Jets", dif = j+"onlyW")
                     signal1.Add(signal3)
@@ -506,24 +800,24 @@ if __name__=="__main__":
                     saveratioplot(signal1,bckgrd1, i, "signal","background", title = j , dif = j)
                     #print("signal: {}; background: {}".format(trash[1]/trash[0], stats1[1]/stats1[0]))
                     del(signal1, bckgrd1)
-    
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------        
-    # checking shape changing of HLT ------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------         
     """
+    """
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------        
+    #! checking shape changing of HLT ------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------         
     i = "recon_Hmass"
     for j in selected_triggers:
         tmp1, stats1 = createTH1F(signal, i, ranges[i],constraints= "weight", normalise = True, dif="signal")
         tmp2, trash = createTH1F(signal, i, ranges[i], constraints= "("+j+">0)*weight", normalise = True)
-        saveratioplot(tmp1, tmp2, i, "no trigger", j, title = "normed distributions", dif = j)
+        saveratioplot(tmp1, tmp2, i, "no trigger", j, title = "normed distributions", dif = j, calcArea=False)
         del(tmp1,tmp2)
     """
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
-    #--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
+    #*--------------------------------------------------------------------------------------------
 
     #saveplot(tmp1, var[16], "100to200")
     #saveplot(tmp2, var[4],  "100to200")
@@ -554,8 +848,8 @@ if __name__=="__main__":
     #del(tmp)
     
     
-    #analyzing different picks ---------------------------------
-    #besties: best_hmass110, best_delta2, best_btagdeep, best_jetpt65
+    #!analyzing different picks ---------------------------------
+    #*besties: best_hmass110, best_delta2, best_btagdeep, best_jetpt65
     """
     tmp1, trash = createTH1F(tree, var[10]+"[best_candidate_id_1]", ranges[var[10]], "nmatch>1&&"+standardconstraints)
     tmp2, trash = createTH1F(tree, var[10]+"[best_candidate_id_2]", ranges[var[10]], "nmatch>1&&"+standardconstraints)
@@ -584,16 +878,16 @@ if __name__=="__main__":
     #tmp.Write()
     #fout.Close()
     """
-    #--------------------------------------------------------------
-    #recon vs gen -----------------------------
+    #*--------------------------------------------------------------
+    #*recon vs gen -----------------------------
     #tmp1, trash = createTH1F(tree, var[4]+"[best_btagdeep]", ranges[var[4]], standardconstraints)
     #tmp2, trash = createTH1F(tree, var[9], ranges[var[4]], standardconstraints)
     #saveratioplot(tmp2, tmp1, "Hmass", "GenJet Hmass", "ReconJet Hmass")
     
     
     
-    # --------------------------------------------------------------------------------
-    # sepecific tasks
+    #* --------------------------------------------------------------------------------
+    #* sepecific tasks
     """
 
     tmp1 = createTH1F(tree, var[9], ranges[var[4]], "deltaR_bjet1 < .3 & deltaR_bjet2 < .3 && nrightjets == 2 && MET_pt<30")
@@ -641,8 +935,8 @@ if __name__=="__main__":
 
 
     """
-    # --------------------------------------------------------------------------------
-    # iterative analysis
+    #* --------------------------------------------------------------------------------
+    #* iterative analysis
 
     """ # trigger testing on Hmass
     for element in Triggers:
@@ -656,8 +950,8 @@ if __name__=="__main__":
     """
 
 
-    # ------------------------------------------------------------------------------------
-    # reference stuff
+    #* ------------------------------------------------------------------------------------
+    #* reference stuff
 
     #for testing stuff
     ##fout = ROOT.TFile("test.root","recreate")

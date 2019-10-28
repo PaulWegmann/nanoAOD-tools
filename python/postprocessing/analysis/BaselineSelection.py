@@ -35,7 +35,7 @@ def second_smallest(numbers):
 
 class BaselineSelection(Module):
     def __init__(self):
-        self.workingonS = False
+        #self.workingonS = False
         self.runcount = {"QCDbEnr_HT100to200_file1.root":1567593, "QCDbEnr_HT100to200_file2.root":1371694, "QCDbEnr_HT100to200_file3.root":1385847, "QCDbEnr_HT200to300_file1.root":1259684, "QCDbEnr_HT200to300_file2.root":1349109, "QCDbEnr_HT200to300_file3.root":1160070, "QCDbEnr_HT300to500_file1.root":1100312, "QCDbEnr_HT300to500_file2.root":843531, "QCDbEnr_HT500to700.root":968568, "QCDbEnr_HT700to1000.root":510681, "QCDbEnr_HT1000to1500_file1.root":49559, "QCDbEnr_HT1000to1500_file2.root":46801, "QCDbEnr_HT1500to2000.root":187594, "QCDbEnr_HT2000toInf.root":151292, "WminusH_HToBB_WToQQ_M125":484662, "WplusH_HToBB_WToQQ_M125":504997}
 
         pass
@@ -47,6 +47,11 @@ class BaselineSelection(Module):
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
         self.infl = inputFile.GetName()
+        if inputFile.GetName() in ["WminusH_HToBB_WToQQ_M125.root", "WplusH_HToBB_WToQQ_M125.root"]:
+            self.workingonS = True
+        else:
+            self.workingonS = False
+        
         self.entries = inputTree.GetEntries()
         
         if self.workingonS:
@@ -73,6 +78,61 @@ class BaselineSelection(Module):
             self.out.branch("wisright", "O", lenVar=str(2))
             self.out.branch("hisright", "O", lenVar=str(2))
 
+        
+        # pt Jets used for classifier
+        self.out.branch("bJet_pt1", "F")
+        self.out.branch("bJet_pt2", "F")
+        self.out.branch("WJet_pt1", "F")
+        self.out.branch("WJet_pt2", "F")
+        
+        # btagDeepB values
+        self.out.branch("bJet_btagDeepB1", "F")
+        self.out.branch("bJet_btagDeepB2", "F")
+        self.out.branch("WJet_btagDeepB1", "F")
+        self.out.branch("WJet_btagDeepB2", "F")
+
+        #! variables needed for BDT training ----------------
+        self.out.branch("bJet_btagDeepC1", "F")
+        self.out.branch("bJet_btagDeepC2", "F")
+        self.out.branch("WJet_btagDeepC1", "F")
+        self.out.branch("WJet_btagDeepC2", "F")
+
+        self.out.branch("bJet_mass1", "F")
+        self.out.branch("bJet_mass2", "F")
+        self.out.branch("WJet_mass1", "F")
+        self.out.branch("WJet_mass2", "F")
+
+        # ["Jet_btagDeepC[recon_bjet_id[0]]", "Jet_btagDeepC[recon_bjet_id[1]]"],
+        # ["Jet_btagDeepC[recon_WJets_id[0]]", "Jet_btagDeepC[recon_WJets_id[1]]"],
+        # ["Jet_mass[recon_bjet_id[0]]", "Jet_mass[recon_bjet_id[1]]"],
+        # ["Jet_mass[recon_WJets_id[0]]", "Jet_mass[recon_WJets_id[1]]"]]
+
+        #for futher input W Jet_neEmEF, W Jet_neHEF, W Jet_qgl, ?H Jet_qgl, ? W Jet_nConstituents ?, ?Jet-HT?
+
+        self.out.branch("WJet_neEmEF1", "F")
+        self.out.branch("WJet_neEmEF2", "F")
+
+        self.out.branch("WJet_neHEF1", "F")
+        self.out.branch("WJet_neHEF2", "F")
+
+
+        self.out.branch("WJet_qgl1", "F")
+        self.out.branch("WJet_qgl2", "F")
+        self.out.branch("HJet_qgl1", "F")
+        self.out.branch("HJet_qgl2", "F")
+
+        self.out.branch("WJet_nConstituents1", "I")
+        self.out.branch("WJet_nConstituents2", "I")
+
+        # self.out.branch("WJet_HT1", "F")
+        # self.out.branch("WJet_HT2", "F")
+        # self.out.branch("HJet_HT1", "F")
+        # self.out.branch("HJet_HT2", "F")
+
+
+
+        #! --------------------------------------------------
+        
         self.out.branch("nmatch", "I") # number of candidates, min 1
         self.out.branch("recon_WJets_id", "I", lenVar=str(2)) #original ids of Jets picked for w reconstruction
         self.out.branch("recon_Wmass", "F")
@@ -123,13 +183,13 @@ class BaselineSelection(Module):
         # just for easier debugging when needed
         prterrmsg = False
         
-        self.numevents +=1
-        if self.numevents %100 !=0:
-            return False
+        # self.numevents +=1
+        # if self.numevents %100 !=0:
+        #     return False
         
         
         # calculating the weights and wether it is signal or not -------------------------------------------------------
-        weights = {"HT100to200":1.127e+06,"HT200to300":8.073e+04, "HT300to500":1.668e+04, "HT500to700":1.485e+03, "HT700to1000":2.976e+02, "HT1000to1500":4.640e+01, "HT1500to2000":3.720e+00, "HT2000toInf":6.438e-01, "Wminus":5.850e-01, "Wplus":5.850e-01}
+        weights = {"HT100to200":1.127e+06,"HT200to300":8.073e+04, "HT300to500":1.668e+04, "HT500to700":1.485e+03*1.9, "HT700to1000":2.976e+02*1.9, "HT1000to1500":4.640e+01, "HT1500to2000":3.720e+00, "HT2000toInf":6.438e-01, "Wminus":5.850e-01, "Wplus":5.850e-01}
         luminosity = 58830
         
         for i in weights.keys():
@@ -150,7 +210,7 @@ class BaselineSelection(Module):
             self.out.fillBranch("sbid", 1)
         
         # ------------------------------------------------
-        # here the GenPart bquarks are tried to connect to GenJets (no selection is done) (added selection of particles originating from W+)
+        #* here the GenPart bquarks are tried to connect to GenJets (no selection is done) (added selection of particles originating from W+)
         if self.workingonS:
             genparticles = Collection(event, "GenPart")
             genjets = Collection(event, "GenJet")
@@ -211,19 +271,27 @@ class BaselineSelection(Module):
                 return False
 
 
-        # -------------------------------------------------
-        # here the algorhythm which tries to reconstruct the h_mass out of the "detected Jets" is applied
-        # description of current algorithm: currently I am saving all events within a certain range
+        #* -------------------------------------------------
+        #* here the algorhythm which tries to reconstruct the h_mass out of the "detected Jets" is applied
+        #* description of current algorithm: currently I am saving all events within a certain range
         
         
         jets = list(Collection(event,"Jet"))
         fatJets = list(Collection(event,"FatJet"))
         
+        
+
         #apply some selection:
         selBJets = [x for x in jets if x.pt>20 and abs(x.eta)<2.5 and x.jetId>0 and x.btagDeepB>0.4941]
         selJets = [x for x in jets if x.pt>20 and abs(x.eta)<4.8 and x.jetId>0] #don't know about the eta<4.8 tough
         
-        
+        #! new part in order to apply breg
+        for index, curjet  in enumerate(selBJets):
+            if curjet.pt >20:
+                selBJets[index].pt = curjet.pt + curjet.bRegCorr
+
+        #! ----------------------------------
+
         #selfatJets =  [x for x in fatJets if x.pt>20 and abs(x.eta)<2.5 and x.jetId>0]
         #selBfatJets = [x for x in fatJets if x.pt>40 and abs(x.eta)<2.5 and x.jetId>0 and x.btagDeepB>0.4941]
         
@@ -241,7 +309,7 @@ class BaselineSelection(Module):
         #    return False
             
         
-        #trying to identify the right btagged jets ---------------------------
+        # * trying to identify the right btagged jets ---------------------------
         
         delta = 0. # this step is important: variables need to be initialised with the proper type otherwise it might won't work and there wont be errors -> actually this is not true, thought so because of another error
         njets = 0.
@@ -274,7 +342,9 @@ class BaselineSelection(Module):
                 v1 = curjet1.p4()
                 v2 = curjet2.p4()
                 hmass = (v1+v2).M()
-                delta = np.sqrt((curjet1.eta-curjet2.eta)**2+(curjet1.phi-curjet2.phi)**2)
+                #delta = np.sqrt((curjet1.eta-curjet2.eta)**2+(curjet1.phi-curjet2.phi)**2)
+                delta = v1.DeltaR(v2) 
+
                 if 90 < hmass and hmass < 155 and i2>i1:
                     hmasses[poss] = hmass
                     deltas[poss] = delta
@@ -300,7 +370,7 @@ class BaselineSelection(Module):
                     nrights[i]=nright
             
             
-            # selecting favorite candidates: --------------------------------------------------
+            # * selecting favorite candidates: --------------------------------------------------
             ncriteria = np.zeros(poss)
             ncriteria2 = np.zeros(poss)
             if poss > 1:
@@ -430,7 +500,7 @@ class BaselineSelection(Module):
                 """
             
             
-            # trying to connect Jets with W+ Boson -----------------------------------------------
+            # * trying to connect Jets with W+ Boson -----------------------------------------------
             
             tmp = []
             for i in selJets:
@@ -475,7 +545,10 @@ class BaselineSelection(Module):
                                     
             Wind = min(enumerate(abs(np.array(Wmasses)-80)), key=itemgetter(1))[0]
             W4 = tmp[Wind1[Wind]].p4()+tmp[Wind2[Wind]].p4()
-            deltaRW = np.sqrt((tmp[Wind1[Wind]].eta-tmp[Wind2[Wind]].eta)**2+(tmp[Wind1[Wind]].phi-tmp[Wind2[Wind]].phi)**2)
+            
+
+            #deltaRW = np.sqrt((tmp[Wind1[Wind]].eta-tmp[Wind2[Wind]].eta)**2+(tmp[Wind1[Wind]].phi-tmp[Wind2[Wind]].phi)**2)
+            deltaRW = tmp[Wind1[Wind]].p4().DeltaR(tmp[Wind2[Wind]].p4())
             deltapt = np.sqrt((tmp[Wind1[Wind]].pt - tmp[Wind2[Wind]].pt)**2)
             
             if self.workingonS:
@@ -529,6 +602,56 @@ class BaselineSelection(Module):
         
         self.out.fillBranch("Jet_HT",Jet_HT) # what is this? sum of all transverse momenta
         self.out.fillBranch("nJets", njets)
+        
+        # save seperatly for easier you of classifier
+        self.out.fillBranch("bJet_pt1", selBJets[indexes1[s]].pt)
+        self.out.fillBranch("bJet_pt2", selBJets[indexes2[s]].pt)
+        
+        self.out.fillBranch("WJet_pt1", jets[Wind1[Wind]].pt)
+        self.out.fillBranch("WJet_pt2", jets[Wind2[Wind]].pt)
+        
+        self.out.fillBranch("bJet_btagDeepB1", selBJets[indexes1[s]].btagDeepB)
+        self.out.fillBranch("bJet_btagDeepB2", selBJets[indexes2[s]].btagDeepB)
+        
+        self.out.fillBranch("WJet_btagDeepB1", jets[Wind1[Wind]].btagDeepB)
+        self.out.fillBranch("WJet_btagDeepB2", jets[Wind2[Wind]].btagDeepB)
+
+        #! variables needed for BDT training ----------------
+        self.out.fillBranch("bJet_btagDeepC1", selBJets[indexes1[s]].btagDeepC)
+        self.out.fillBranch("bJet_btagDeepC2", selBJets[indexes2[s]].btagDeepC)
+        self.out.fillBranch("WJet_btagDeepC1", jets[Wind1[Wind]].btagDeepC)
+        self.out.fillBranch("WJet_btagDeepC2", jets[Wind2[Wind]].btagDeepC)
+
+
+        self.out.fillBranch("bJet_mass1", selBJets[indexes1[s]].mass)
+        self.out.fillBranch("bJet_mass2", selBJets[indexes2[s]].mass)
+        self.out.fillBranch("WJet_mass1", jets[Wind1[Wind]].mass)
+        self.out.fillBranch("WJet_mass2", jets[Wind2[Wind]].mass)
+
+        #self.out.fillBranch("", selBjets[indexes1[s]].chEmEF)
+
+        self.out.fillBranch("WJet_neEmEF1", jets[Wind1[Wind]].neEmEF)
+        self.out.fillBranch("WJet_neEmEF2", jets[Wind2[Wind]].neEmEF)
+
+        self.out.fillBranch("WJet_neHEF1", jets[Wind1[Wind]].neHEF)
+        self.out.fillBranch("WJet_neHEF2", jets[Wind2[Wind]].neHEF)
+
+
+        self.out.fillBranch("WJet_qgl1", jets[Wind1[Wind]].qgl)
+        self.out.fillBranch("WJet_qgl2", jets[Wind2[Wind]].qgl)
+        self.out.fillBranch("HJet_qgl1", selBJets[indexes1[s]].qgl)
+        self.out.fillBranch("HJet_qgl2", selBJets[indexes2[s]].qgl)
+
+        self.out.fillBranch("WJet_nConstituents1", jets[Wind1[Wind]].nConstituents)
+        self.out.fillBranch("WJet_nConstituents2", jets[Wind2[Wind]].nConstituents)
+
+        #print(jets[Wind1[Wind]].HT)
+        #self.out.fillBranch("WJet_HT1", jets[Wind1[Wind]].HT)
+        #self.out.fillBranch("WJet_HT2", jets[Wind2[Wind]].HT)
+        #self.out.fillBranch("HJet_HT1", selBJets[indexes1[s]].HT)
+        #self.out.fillBranch("HJet_HT2", selBJets[indexes2[s]].HT)
+
+        #! ---------------------------------------------------
         
 
         return True
