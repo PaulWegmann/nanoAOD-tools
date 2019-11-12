@@ -47,10 +47,14 @@ class BaselineSelection(Module):
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
         self.infl = inputFile.GetName()
-        if inputFile.GetName() in ["WminusH_HToBB_WToQQ_M125.root", "WplusH_HToBB_WToQQ_M125.root"]:
+        if "WminusH_HToBB_WToQQ_M125" in inputFile.GetName():
+            self.workingonS = True
+        elif "WplusH_HToBB_WToQQ_M125" in inputFile.GetName():
             self.workingonS = True
         else:
             self.workingonS = False
+
+        print("Working on Signal: {}".format(self.workingonS))
         
         self.entries = inputTree.GetEntries()
         
@@ -286,9 +290,9 @@ class BaselineSelection(Module):
         selJets = [x for x in jets if x.pt>20 and abs(x.eta)<4.8 and x.jetId>0] #don't know about the eta<4.8 tough
         
         #! new part in order to apply breg
-        for index, curjet  in enumerate(selBJets):
-            if curjet.pt >20:
-                selBJets[index].pt = curjet.pt + curjet.bRegCorr
+        #for index, curjet  in enumerate(selBJets):
+        #    if curjet.pt >20:
+        #        selBJets[index].pt = curjet.pt*curjet.bRegCorr
 
         #! ----------------------------------
 
@@ -336,6 +340,8 @@ class BaselineSelection(Module):
             if poss == elements-1:
                 break
             for i2,curjet2 in enumerate(selBJets):
+                if i2<=i1:
+                    continue
                 if poss == elements-1:
                     break
                 #p4 is a Lorentzvector so here I take two arbitrary b-jets and treat them as my bottom quarks 
@@ -345,12 +351,14 @@ class BaselineSelection(Module):
                 #delta = np.sqrt((curjet1.eta-curjet2.eta)**2+(curjet1.phi-curjet2.phi)**2)
                 delta = v1.DeltaR(v2) 
 
-                if 90 < hmass and hmass < 155 and i2>i1:
-                    hmasses[poss] = hmass
-                    deltas[poss] = delta
-                    indexes1[poss] = i1
-                    indexes2[poss] = i2
-                    poss+=1
+                
+                # if 90 < hmass and hmass < 155 and i2>i1:
+                #! original analysis tab everything below in
+                hmasses[poss] = hmass
+                deltas[poss] = delta
+                indexes1[poss] = i1
+                indexes2[poss] = i2
+                poss+=1
                     
         
         if poss==0:
@@ -363,12 +371,16 @@ class BaselineSelection(Module):
                     if i == elements-1 or indexes1[i] == -999:
                         break
                     nright = 0
+                    #print(selBJets[indexes1[i]].genJetIdx == index1)
+                    #print(indexes1[i], indexes2[i])
+                    #print(index1, index2)
                     if selBJets[indexes1[i]].genJetIdx == index1 or selBJets[indexes1[i]].genJetIdx == index2:
                         nright+=1
                     if selBJets[indexes2[i]].genJetIdx == index1 or selBJets[indexes2[i]].genJetIdx == index2:
                         nright+=1
                     nrights[i]=nright
             
+            #print(nrights)
             
             # * selecting favorite candidates: --------------------------------------------------
             ncriteria = np.zeros(poss)
@@ -387,7 +399,20 @@ class BaselineSelection(Module):
                 helper3 = np.array(helper3)
                 
                 helper = helper2+helper3
-                s = max(enumerate(helper), key=itemgetter(1))[0]
+                s = max(enumerate(helper), key=itemgetter(1))[0]#[0]
+                
+                #! additional stuff below
+
+                # helper2pt = []
+                # helper3pt = []
+                
+                # for j, i in zip(helper, helper1):
+                #     helper2pt.append(j.pt)
+                #     helper3pt.append(i.pt)
+                
+                # s2 = max(enumerate())
+
+                # print(selBJets[indexes1[s]].pt)
                 
                 
                 
@@ -592,7 +617,8 @@ class BaselineSelection(Module):
             
             H4 = selBJets[indexes1[s]].p4()+selBJets[indexes2[s]].p4()
             
-            self.out.fillBranch("recon_Hmass", hmasses[s])   
+            self.out.fillBranch("recon_Hmass", hmasses[s])
+            #print(nrights[s])
             self.out.fillBranch("recon_Hpt", H4.Pt())
             self.out.fillBranch("recon_Heta", H4.Pt())
             self.out.fillBranch("deltaR_reconHW", H4.DeltaR(W4))

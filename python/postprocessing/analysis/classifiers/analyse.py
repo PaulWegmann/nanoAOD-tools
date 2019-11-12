@@ -69,10 +69,94 @@ if __name__=="__main__":
         "HLT_PFHT180": ["VarTransform=U:BoostType=AdaBoost:SeparationType=MisClassificationError:MinNodeSize=1%:NTrees=400:MaxDepth=3"]}
 
     for trigger in triggers:
-        for i in range(10):
-            for option in optionsdict[trigger]:
-                    options = option
-        
+        #! training with fixed options
+        for i in range(10): 
+                    #? no observed difference for:
+                    #? quad = [WJet_btagDeepC2, WJet_mass1, WJet_mass2, WJet_neEmEF1, WJet_neEmEF2, WJet_neHEF2, WJet_qgl2]
+                    #? ht180 = [WJet_pt1, bJet_mass1, WJet_mass2, WJet_neEmEF1, WJet_neEmEF2, WJet_neHEF1, WJet_neHEF2]
+                    options = "NTrees=200:MaxDepth=3:MinNodeSize=5%"
+                    if trigger == triggers[0]:
+                        variables = variables= ["recon_Wmass", 
+                            "recon_Hmass", 
+                            "deltaR_reconHW",
+                            "recon_Hpt",
+                            "recon_Wpt",
+                            "deltaR_bb", 
+                            "deltaR_W", 
+                            "Jet_HT",
+                            "bJet_pt1",
+                            "bJet_pt2",
+                            "WJet_pt1",
+                            "WJet_pt2",
+                            "bJet_btagDeepB1",
+                            "bJet_btagDeepB2",
+                            "WJet_btagDeepB1",
+                            "WJet_btagDeepB2",
+                            "WJet_btagDeepC1", 
+                            "WJet_btagDeepC2",
+                            "bJet_mass1",
+                            "bJet_mass2",
+                            "WJet_mass1", #*curresults
+                            "WJet_mass2", #*curresults
+                            "WJet_neEmEF1", #*curresults
+                            "WJet_neEmEF2", #*curresults
+                            "WJet_neHEF1", #*curresults
+                            "WJet_neHEF2", #*curresults
+                            "WJet_qgl1", 
+                            "WJet_qgl2",
+                            "HJet_qgl1", #*curresults
+                            "HJet_qgl2", #*curresults
+                            "WJet_nConstituents1", 
+                            "WJet_nConstituents2"
+
+                            #"HJet_btagDeepC1", "HJet_btagDeepC2",
+                            #["bJet_"]
+                            ]
+                    if trigger == triggers[1]:
+                        variables = variables= ["recon_Wmass", 
+                            "recon_Hmass", 
+                            "deltaR_reconHW",
+                            "recon_Hpt",
+                            "recon_Wpt",
+                            "deltaR_bb", 
+                            "deltaR_W", 
+                            "Jet_HT",
+                            "bJet_pt1",
+                            "bJet_pt2",
+                            "WJet_pt1", #*curresults
+                            "WJet_pt2",
+                            "bJet_btagDeepB1",
+                            "bJet_btagDeepB2",
+                            "WJet_btagDeepB1",
+                            "WJet_btagDeepB2",
+                            "WJet_btagDeepC1", 
+                            "WJet_btagDeepC2",
+                            "bJet_mass1",
+                            "bJet_mass2",
+                            "WJet_mass1", 
+                            "WJet_mass2", #*curresults
+                            "WJet_neEmEF1", #*curresults
+                            "WJet_neEmEF2", #*curresults
+                            "WJet_neHEF1", #*curresults
+                            "WJet_neHEF2", #*curresults
+                            "WJet_qgl1", 
+                            "WJet_qgl2",
+                            "HJet_qgl1", #*curresults
+                            "HJet_qgl2", #*curresults
+                            "WJet_nConstituents1", 
+                            "WJet_nConstituents2"
+
+                            #"HJet_btagDeepC1", "HJet_btagDeepC2",
+                            #["bJet_"]
+                            ]
+        #! --------------------------------------
+
+        #! training for finally selected options
+        # for i in range(10):
+        #     for option in optionsdict[trigger]:
+        #             options = option
+        #! --------------------------------------
+
         #for index1, curvar1 in enumerate(setvars.keys()): #? change to setvars.keys()
             #for index2, curvar2 in enumerate(tmp.keys()): #? change to setvars
         #    tmp = {"MinNodeSize":"1%", "NTrees":500, "MaxDepth":10}
@@ -92,11 +176,12 @@ if __name__=="__main__":
                     
                     #    setvars = {"MinNodeSize":"1%", "NTrees":500, "MaxDepth":10}
 
-                    train(trigger, options = options)
+                    train(trigger, options = options, variables = variables)
                     print("!!!!!!!!!!!!!!!!!!!!!!!")
-                    evaluate(trigger)
+                    evaluate(trigger, variables = variables)
                     
-                    mad_val, mse_val, AMSss, minimum, maximum = analyse(trigger, options=optionssimplified, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
+
+                    mad_val, mse_val, AMSss, AMSrecon, signalevents, bckgrdevents, minimum, maximum = analyse(trigger, options=optionssimplified, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
 
                     
                     # ---------------------------------------------------------------------
@@ -149,13 +234,13 @@ if __name__=="__main__":
                     
                     #data["ROCIntegral"][index] = roc_value
 
-                    dataexport = dataexport.append({"trigger":trigger, "options":options, "AMS":AMSss, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
+                    dataexport = dataexport.append({"trigger":trigger, "options":options, "AMS":AMSss,"AMSrecon":AMSrecon, "sigevents":signalevents, "bckevents":bckgrdevents, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
                     index+=1
                     infile.Close()
 
 
-                    #del(hist)
+                #del(hist)
 
                         
-    dataexport.to_csv("analyse_final_stat_oneoption_onalldata.csv")
+    dataexport.to_csv("leavevar/results/var_ntrain10_varU_n500_max2_min5_bobe02.csv")
   

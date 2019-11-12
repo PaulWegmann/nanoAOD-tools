@@ -4,6 +4,7 @@ import PhysicsTools.NanoAODTools.plotting as plot
 import os
 import numpy as np
 from array import array
+from scipy.stats import crystalball
 
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -480,7 +481,7 @@ if __name__=="__main__":
     #var = ["Jet_btagDeepC", "Jet_mass", "Jet_nElectrons", "Jet_hadronFlavour"]
     
     ranges = {"Jet_pt":np.linspace( 0,200, 40), "Jet_phi":np.linspace(-4,4,20), "Jet_eta":np.linspace(-4,4,20), 
-    "deltaR_bb":np.linspace(0,6,50), "recon_Hmass":np.linspace(90, 140, 15), "nJets":np.linspace(3.5,12.5,10), 
+    "deltaR_bb":np.linspace(0,6,50), "recon_Hmass":np.linspace(75, 175, 25), "nJets":np.linspace(3.5,12.5,10), 
     "MET_pt":np.linspace(0,250,70), "fatjetsused":np.linspace(0,2,3), "original_Hmass":np.linspace(0,200,50), 
     "genjets_Hmass:":np.linspace(50, 200, 50), "nrightjets":np.linspace(-0.5,2.5,4), "Jet_btagDeepB":np.linspace(0.5,1,50), 
     "nmatch":np.linspace(1.5,6.5,6), "candidate_score_1":np.linspace(1.6,8,20), "wnrightjets":np.linspace(-0.5,2.5,4), 
@@ -493,17 +494,17 @@ if __name__=="__main__":
     "recon_Wmass":np.linspace(20, 140, 15)}
 
     triggers = ["HLT_AK8PFJet80",  "HLT_PFJet80", "HLT_PFHT300PT30_QuadPFJet_75_60_45_40", "HLT_DiPFJetAve35_HFJEC",  "HLT_PFHT180", "HLT_DoublePFJets40_CaloBTagCSV_p33",  "HLT_AK4PFJet80", "HLT_AK4CaloJet80"]
-    selected_triggers = ["HLT_PFHT300PT30_QuadPFJet_75_60_45_40"]#, "HLT_PFHT180" ]
+    selected_triggers = ["HLT_PFHT300PT30_QuadPFJet_75_60_45_40", "HLT_PFHT180" ]
 
     standardconstraintsH = "deltaR_bjet1 < .3 && deltaR_bjet2 < .3" #first selection is to used to ensure that i can connect the genpart level with the genjet level properly; 
     testing_constraints = "deltaR_bb<1. && deltaR_bb>.0"
     
     standardconstraintsW = "deltaR_W_jet1< .5 && deltaR_W_jet2 < .5"
 
-    infile = ROOT.TFile.Open("../classifiers/data/breg/bckgrd.root")
+    infile = ROOT.TFile.Open("../classifiers/data/breg/nores/bckgrd.root")
     bckgrd = infile.Get("Events")
     
-    infile2 = ROOT.TFile.Open("../classifiers/data/breg/signal.root")
+    infile2 = ROOT.TFile.Open("../classifiers/data/breg/nores/signal.root")
     signal = infile2.Get("Events")
     
     #infile = ROOT.TFile.Open("../WplusH_HToBB_WToQQ_M125_Skim.root")
@@ -537,7 +538,7 @@ if __name__=="__main__":
     """
     #### recon_WJets_id, recon_bjet_id
     #for futher input W Jet_neEmEF, W Jet_neHEF, W Jet_qgl, ?H Jet_qgl, ? W Jet_nConstituents ?, ?Jet-HT?
-
+    """
     var = "Jet_btagDeepB"
     
     ranges.update({"Jet_chEmEF":np.linspace(0,1,20), "Jet_chHEF":np.linspace(0,1,20), "Jet_nConstituents":np.linspace(0, 60, 30),
@@ -546,13 +547,132 @@ if __name__=="__main__":
 
     signal1, _ = createTH1F(signal, "{}[recon_WJets_id[0]]".format(var), ranges[var], "weight", dif = "signal", normalise = True)
     bckgrd1, _ = createTH1F(bckgrd, "{}[recon_WJets_id[0]]".format(var), ranges[var], "weight", normalise = True)
-    saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_W".format(var))
+    print(saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_W".format(var), return_area=True))
     del(signal1, bckgrd1)
     signal1, _ = createTH1F(signal, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", dif = "signal", normalise = True)
     bckgrd1, _ = createTH1F(bckgrd, "{}[recon_bjet_id[0]]".format(var), ranges[var], "weight", normalise = True)
-    saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_H".format(var))
+    print(saveratioplot(signal1, bckgrd1,  var,  "signal", "background", calcArea = True, ratio = False, name = "{}_area_H".format(var), return_area=True))
+    """
+    """
+    def crystal_ball(x, p):
+        #  A Gaussian curve on one side and a power-law on the other side. Used in
+        # physics to model lossy processes.
+        # See http://en.wikipedia.org/wiki/Crystal_Ball_function
+        # Note that the definition used here differs slightly. At the time of this
+        # writing, the wiki article has some discrepancies in definitions/plots. This
+        # definition makes it easier to fit the function by using complex numbers
+        # and by negating any negative values for a and n.
+        # This version of the crystal ball is normalized by an additional parameter.
+        # params: N, a, n, xb, sig
+        
+        #x = x+0j # Prevent warnings...
+        N, a, n, xb, sig = p
+        if p[1] < 0:
+            p[1] = -p[1]
+        if p[2] < 0:
+            p[2] = -p[2]
+        aa = abs(p[1])
+        A = (p[2]/aa)**p[2] * np.exp(- aa**2 / 2)
+        B = p[2]/aa - aa
+        total = 0.*x[0]
+        total += ((x[0]-p[3])/p[4]  > -p[1]) * p[0] * np.exp(- (x[0]-p[3])**2/(2.*p[4]**2))
+        total += ((x[0]-p[3])/p[4] <= -p[1]) * p[0] * A * (B - (x[0]-p[3])/p[4])**(-p[2])
+        #try:
+        #    return total.real
+        #except:
+        #    return total
+        print(total)
+        return total
+    """
 
 
+    def crystalball_function(x, alpha, n, sigma, mean):
+        if (sigma < 0.):
+            return(0)
+        z = (x - mean)/sigma 
+        if (alpha < 0):
+             z = -z 
+        abs_alpha = abs(alpha)
+        # // double C = n/abs_alpha * 1./(n-1.) * std::exp(-alpha*alpha/2.);
+        # // double D = std::sqrt(M_PI/2.)*(1.+ROOT::Math::erf(abs_alpha/std::sqrt(2.)));
+        # // double N = 1./(sigma*(C+D));
+        if (z  > - abs_alpha):
+            return np.exp(- 0.5 * z * z)
+        else:
+        #//double A = std::pow(n/abs_alpha,n) * std::exp(-0.5*abs_alpha*abs_alpha);
+            nDivAlpha = n/abs_alpha
+            AA =  np.exp(-0.5*abs_alpha*abs_alpha)
+            B = nDivAlpha -abs_alpha
+            arg = nDivAlpha/(B-z)
+            return AA * arg**n
+
+    def crystalball_function1(x, p):
+        #// if ((!x) || (!p)) return 0.; // just a precaution
+        #// [Constant] * ROOT::Math::crystalball_function(x, [Alpha], [N], [Sigma], [Mean])
+        return(p[0] * crystalball_function(x[0], p[3], p[4], p[2], p[1]))
+    
+    
+
+
+
+    # infile3 = ROOT.TFile.Open("../background/breg2/bckgrd.root")
+
+    #bckgrd = infile3.Get("Events")
+    
+    infile2 = ROOT.TFile.Open("../signal/signal.root")
+    signal_nobreg = infile2.Get("Events")
+
+    #infile4 = ROOT.TFile.Open("../../classifiers/data/breg/signal.root")
+    infile4 = ROOT.TFile.Open("../classifiers/data/breg/nores/signal.root")
+    signal = infile4.Get("Events")
+
+
+    var = "recon_Hmass"
+    signal1, _ = createTH1F(signal_nobreg, var, ranges[var], "weight", dif = "signal")
+    bckgrd1, _  = createTH1F(signal, var, ranges[var], "weight")
+
+    function1 = ROOT.TF1("m1", crystalball_function1,min(ranges["recon_Hmass"]), max(ranges["recon_Hmass"]), 5)
+    function2 = ROOT.TF1("m2",crystalball_function1, max(ranges["recon_Hmass"]), max(ranges["recon_Hmass"]), 5)
+
+
+
+    function1.SetParameters( 800., 110.,  20., 1., 10.)
+    function2.SetParameters( 800., 125.,  18., 5., 10.)
+
+
+    canvas = ROOT.TCanvas("c1","c1")
+    function1.Draw()
+
+    canvas.SaveAs("test.pdf")
+    
+
+
+    # function1.SetParLimits(0, 0.1, 1000)
+    # function1.SetParLimits(1, -1000, 1000)
+    function2.SetParLimits(5, 1, 100000)
+    # function2.SetParLimits(2, 0.1, 1000)
+
+    # function1.SetParLimits(3, 0.1, 1000)
+    # function1.SetParLimits(4, 0.1, 1000)
+    # function1.SetParLimits(5, 0.1, 1000)
+
+    # function2.SetParLimits(3, 0.1, 1000)
+    #x = ROOT.RooRealVar("x", "x", 50, 175)
+    #mean = ROOT.RooRealVar("mean", "mean of gaussian", 1, -10, 10)
+    #sigma = ROOT.RooRealVar("sigma", "width of gaussian", 1, 0.1, 10)
+    #gauss = ROOT.RooGaussian("gauss", "gaussian PDF", x, mean, sigma)
+    
+    #dh = ROOT.RooDataHist("dh", "dh", x, signal1);
+    #gauss.fitTo(signal1)
+
+    function1.SetLineColor(ROOT.kBlue)
+    
+    signal1.Fit(function1)
+
+    bckgrd1.Fit(function2)
+
+    saveratioplot(bckgrd1, signal1, "m_{H} (GeV)", "With breg", "Without breg", name = "Compare_breg")
+    
     #* ------------------------------------------------------------------------------------
     #* ------------------------------------------------------------------------------------
     #! create plots of genlevel data and reconlevel data ----------------------------------
@@ -602,9 +722,18 @@ if __name__=="__main__":
     # "fatjetsused == 0" # no fatjets are used
     
     # calculating fractions after reweighting:
-    #tmp1, stats1 = createTH1F(bckgrd,"recon_Hmass",ranges["recon_Hmass"], constraints= "weight", dif="bckgrd")
-    #tmp2, stats1 = createTH1F(signal,"recon_Hmass",ranges["recon_Hmass"], constraints= "weight")
-    #print("signal {}; background {}".format(tmp2.Integral(), tmp1.Integral() ))
+    tmp1, stats1 = createTH1F(bckgrd,"recon_Hmass",np.linspace(0, 10000, 40), constraints= "weight", dif="bckgrd")
+    tmp2, stats1 = createTH1F(signal,"recon_Hmass",np.linspace(0, 10000, 40), constraints= "weight")
+    print("signal {}; background {}".format(tmp2.Integral(), tmp1.Integral() ))
+    
+
+    # calculating fractions after applying triggers:
+    for j in selected_triggers:
+        tmp1, stats1 = createTH1F(bckgrd,"recon_Hmass",np.linspace(0, 10000, 40), constraints= "({}>0)*weight".format(j), dif="bckgrd")
+        tmp2, stats1 = createTH1F(signal,"recon_Hmass",np.linspace(0, 10000, 40), constraints= "({}>0)*weight".format(j))
+        print("{}: signal {}; background {}".format(j, tmp2.Integral(), tmp1.Integral() ))
+        
+    
     
     #showing smooth transition of LHE_HT ()
 
@@ -718,6 +847,7 @@ if __name__=="__main__":
     #*--------------------------------------------------------------------------------------------
     
     """
+    
     for j in triggers:
         signal1, stats1 = createTH1F(signal,j, np.linspace(0.5,1.5,2),constraints= "("+j+">0)*weight", dif="signal")
         ints1 = signal1.Integral()

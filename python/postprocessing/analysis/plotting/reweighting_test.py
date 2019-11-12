@@ -65,5 +65,5 @@ for fl in files[1:]:
 #hist.Draw("")
 os.chdir(pathsave)
 print(histo.GetEntries())
-saveplot(histo, "Summed E_{T}", log = True)
+saveplot(histo, "Summed E_{T} (GeV)", log = True)
 saveratioplot(histo2, histo, "Summed E_{T}", "weighted", "unweighted", log=True, ratio=False, name="weighting")

@@ -49,86 +49,61 @@ path = "dataset/Method_BDT/BDT/"
 
 dataexport = pd.DataFrame(columns=[ "trigger", "leftvar", "AMS", "AMSrecon", "MAD", "MSE", "ROCIntegral", "overtrain"])
 
+total_results = {triggers[0]:{}, triggers[1]:{}}
 
-for trigger in triggers:
-    
-    allvar= ["recon_Wmass", 
-            "recon_Hmass", 
-            "deltaR_reconHW",
-            "recon_Hpt",
-            "recon_Wpt",
-            "deltaR_bb", 
-            "deltaR_W", 
-            "Jet_HT",
-            "bJet_pt1",
-            "bJet_pt2",
-            "WJet_pt1",
-            "WJet_pt2",
-            "bJet_btagDeepB1",
-            "bJet_btagDeepB2",
-            "WJet_btagDeepB1",
-            "WJet_btagDeepB2",
-            "WJet_btagDeepC1", 
-            "WJet_btagDeepC2",
-            "bJet_mass1",
-            "bJet_mass2",
-            "WJet_mass1", 
-            "WJet_mass2",
-            "WJet_neEmEF1",
-            "WJet_neEmEF2",
-            "WJet_neHEF1", 
-            "WJet_neHEF2",
-            "WJet_qgl1", 
-            "WJet_qgl2",
-            "HJet_qgl1",
-            "HJet_qgl2",
-            "WJet_nConstituents1", 
-            "WJet_nConstituents2"
-
-            #"HJet_btagDeepC1", "HJet_btagDeepC2",
-            #["bJet_"]
-            ] #curcount = ~22
+for i in range(10):
+    split_seed = int(10000*np.random.rand())
 
 
-    leavevars = []
-    
-    process = subprocess.Popen(['python', 'tmvaBDT2.py',  'train', 'none', '{}'.format(trigger)], stdout=subprocess.PIPE)
-    stdout = process.communicate()[0]
-    #print('STDOUT:{}'.format(stdout))
+    for trigger in triggers:
+        
+        allvar= ["recon_Wmass", 
+                "recon_Hmass", 
+                "deltaR_reconHW",
+                "recon_Hpt",
+                "recon_Wpt",
+                "deltaR_bb", 
+                "deltaR_W", 
+                "Jet_HT",
+                "bJet_pt1",
+                "bJet_pt2",
+                "WJet_pt1",
+                "WJet_pt2",
+                "bJet_btagDeepB1",
+                "bJet_btagDeepB2",
+                "WJet_btagDeepB1",
+                "WJet_btagDeepB2",
+                "WJet_btagDeepC1", 
+                "WJet_btagDeepC2",
+                "bJet_mass1",
+                "bJet_mass2",
+                "WJet_mass1", 
+                "WJet_mass2",
+                "WJet_neEmEF1",
+                "WJet_neEmEF2",
+                "WJet_neHEF1", 
+                "WJet_neHEF2",
+                "WJet_qgl1", 
+                "WJet_qgl2",
+                "HJet_qgl1",
+                "HJet_qgl2",
+                "WJet_nConstituents1", 
+                "WJet_nConstituents2"
 
-    found = False
+                #"HJet_btagDeepC1", "HJet_btagDeepC2",
+                #["bJet_"]
+                ] #curcount = ~22
 
-    
-    for index, line in enumerate(stdout.splitlines()):
-        if 'method specific' in line:
-            found = True
-            start = index+5
-        if found:
-            if "Factory" in line:
-                found = False
-                end = index-2
 
-    for var in allvar:
-        if var in stdout.splitlines()[end]:
-            lastvar = var
-            
-    print("lastvar : {}".format(stdout.splitlines()[end]))#, stdout.splitlines()[start])
-
-    evaluate(trigger, variables = allvar)
-    leavevars.append(lastvar)    
-
-    mad_val, mse_val, AMSss, AMSrecon, signalevents, bckgrdevents, minimum, maximum = analyse(trigger, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
-    overtrainmetric, roc_value = overtrain_ROC(trigger)
-
-    dataexport = dataexport.append({"trigger":trigger, "leftvar":"", "AMS":AMSss,"AMSrecon":AMSrecon, "sigevents":signalevents, "bckevents":bckgrdevents, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
-
-    while (roc_value>82.0):
-
-        process = subprocess.Popen(['python', 'tmvaBDT2.py',  'train', '{}'.format(leavevars), '{}'.format(trigger)], stdout=subprocess.PIPE)
+        leavevars = []
+        
+        process = subprocess.Popen(['python', 'tmvaBDT2.py',  'train', 'none', '{}'.format(trigger),"{}".format(split_seed)], stdout=subprocess.PIPE)
         stdout = process.communicate()[0]
-        # print('STDOUT:{}'.format(stdout))
+        #print('STDOUT:{}'.format(stdout))
 
         found = False
+
+        
         for index, line in enumerate(stdout.splitlines()):
             if 'method specific' in line:
                 found = True
@@ -141,27 +116,73 @@ for trigger in triggers:
         for var in allvar:
             if var in stdout.splitlines()[end]:
                 lastvar = var
-                break
                 
         print("lastvar : {}".format(stdout.splitlines()[end]))#, stdout.splitlines()[start])
-
-        allvar.remove(leavevars[-1])
 
         evaluate(trigger, variables = allvar)
         leavevars.append(lastvar)    
 
         mad_val, mse_val, AMSss, AMSrecon, signalevents, bckgrdevents, minimum, maximum = analyse(trigger, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
         overtrainmetric, roc_value = overtrain_ROC(trigger)
-        print("ROC: {}".format(roc_value))
 
-        dataexport = dataexport.append({"trigger":trigger, "leftvar":leavevars[-2], "AMS":AMSss,"AMSrecon":AMSrecon, "sigevents":signalevents, "bckevents":bckgrdevents, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
+        dataexport = dataexport.append({"trigger":trigger, "leftvar":"", "AMS":AMSss,"AMSrecon":AMSrecon, "sigevents":signalevents, "bckevents":bckgrdevents, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
 
+        epoch = 0
+        while (roc_value>82.0):
+            
 
-dataexport.to_csv("leavevar/n200_max3_min5_seed838.csv")
+            process = subprocess.Popen(['python', 'tmvaBDT2.py',  'train', '{}'.format(leavevars), '{}'.format(trigger), "{}".format(split_seed)], stdout=subprocess.PIPE)
+            stdout = process.communicate()[0]
+            # print('STDOUT:{}'.format(stdout))
 
-# process = subprocess.Popen(['echo', '"Hello stdout"'], stdout=subprocess.PIPE)
-# stdout = process.communicate()[0]
-# print 'STDOUT:{}'.format(stdout)
+            found = False
+            for index, line in enumerate(stdout.splitlines()):
+                if 'method specific' in line:
+                    found = True
+                    start = index+5
+                if found:
+                    if "Factory" in line:
+                        found = False
+                        end = index-2
+
+            for var in allvar:
+                if var in stdout.splitlines()[end]:
+                    lastvar = var
+                    break
+                    
+            print("lastvar : {}".format(stdout.splitlines()[end]))#, stdout.splitlines()[start])
+
+            allvar.remove(leavevars[-1])
+
+            evaluate(trigger, variables = allvar)
+            leavevars.append(lastvar)    
+
+            mad_val, mse_val, AMSss, AMSrecon, signalevents, bckgrdevents, minimum, maximum = analyse(trigger, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
+            overtrainmetric, roc_value = overtrain_ROC(trigger)
+            print("ROC: {}".format(roc_value))
+
+            if leavevars[-2] in total_results[trigger].keys():
+                total_results[trigger][leavevars[-2]][0]+= epoch
+                total_results[trigger][leavevars[-2]][1]+= 1
+            else:
+                total_results[trigger].update({leavevars[-2]:[epoch, 1]})
+
+            dataexport = dataexport.append({"trigger":trigger, "leftvar":leavevars[-2], "AMS":AMSss,"AMSrecon":AMSrecon, "sigevents":signalevents, "bckevents":bckgrdevents, "MAD":mad_val, "MSE":mse_val, "ROCIntegral":roc_value, "overtrain":overtrainmetric}, ignore_index=True)                    
+            
+            epoch+=1
+
+dataexport.to_csv("leavevar/n200_max3_min5_G.csv")
+
+for trigger in triggers:
+    final = pd.DataFrame(columns = ["trigger", "var", "val"])
+    for var in total_results[trigger]:
+        final = final.append({"trigger":trigger, "var":var, "val":total_results[trigger][var]}, ignore_index = True)
+    final.sort_values( "val", ascending = False, inplace=True)
+    final.to_csv("leavevar/results/varranking_{}.csv".format(trigger), index = False)
+
+    # process = subprocess.Popen(['echo', '"Hello stdout"'], stdout=subprocess.PIPE)
+    # stdout = process.communicate()[0]
+    # print 'STDOUT:{}'.format(stdout)
 
 
 

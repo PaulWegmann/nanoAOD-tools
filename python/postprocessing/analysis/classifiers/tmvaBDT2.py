@@ -17,9 +17,9 @@ def get_variables_2():
 #NTrees=300:MinNodeSize=7.5%:BoostType=AdaBoost:SeparationType=MisClassificationError:VarTransform=G:nCuts=400:MaxDepth=5 #old one
 #VarTransform=U:BoostType=AdaBoost:SeparationType=MisClassificationError:MinNodeSize=1%:NTrees=400:MaxDepth=3 #new one which is more shit
 def train( trigger, 
-options = "NTrees=200:MaxDepth=3:MinNodeSize=5%",
+options = "VarTransform=U:NTrees=200:MaxDepth=3:MinNodeSize=5%",
 #options = "BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MinNodeSize=1%:NTrees=50:MaxDepth=5:AdaBoostBeta=0.4",
-signal = "data/breg/signal.root",bckgrd = "data/breg/bckgrd.root", TMVAoutfile = 'tmvaBDT', variables= ["recon_Wmass", 
+signal = "data/breg/nores/signal.root",bckgrd = "data/breg/nores/bckgrd.root", TMVAoutfile = 'tmvaBDT', variables= ["recon_Wmass", 
             "recon_Hmass", 
             "deltaR_reconHW",
             "recon_Hpt",
@@ -54,7 +54,7 @@ signal = "data/breg/signal.root",bckgrd = "data/breg/bckgrd.root", TMVAoutfile =
 
             #"HJet_btagDeepC1", "HJet_btagDeepC2",
             #["bJet_"]
-            ] #curcount = ~22
+            ], seed = 0 #curcount = ~22
 ): #,"bJet_btagDeepB1","bJet_btagDeepB2","WJet_btagDeepB1","WJet_btagDeepB2"]): #! ncuts can set to -1 for ?better? !longer! performance
     
 
@@ -78,7 +78,7 @@ signal = "data/breg/signal.root",bckgrd = "data/breg/bckgrd.root", TMVAoutfile =
         bckgrd_file.Get('Events').GetEntries()))
 
 
-    tmva_dataloader.PrepareTrainingAndTestTree(ROOT.TCut(trigger+">0"), ROOT.TCut(trigger+">0"), "SplitMode=Random:MixMode=Random:NormMode=None:SplitSeed=838")
+    tmva_dataloader.PrepareTrainingAndTestTree(ROOT.TCut(trigger+">0"), ROOT.TCut(trigger+">0"), "SplitMode=Random:MixMode=Random:NormMode=None:SplitSeed={}".format(seed))
     global_options = 'CreateMVAPdfs:NbinsMVAPdf=100:'
 
     #vi = ROOT.TMVA.VariableImportance(tmva_dataloader)
@@ -131,7 +131,7 @@ TRUTH, WEIGHT, BDT, \
     0, 1, 2, 3, 4
 nResult=5
 
-def evaluate(trigger,signal = "data/breg/signal.root",bckgrd = "data/breg/bckgrd.root", variables= ["recon_Wmass", "recon_Hmass", "deltaR_reconHW","recon_Hpt","recon_Wpt","deltaR_bb", "deltaR_W", 
+def evaluate(trigger,signal = "data/breg/nores/signal.root",bckgrd = "data/breg/nores/bckgrd.root", variables= ["recon_Wmass", "recon_Hmass", "deltaR_reconHW","recon_Hpt","recon_Wpt","deltaR_bb", "deltaR_W", 
             "Jet_HT",
             "bJet_pt1","bJet_pt2",
             "WJet_pt1","WJet_pt2",
@@ -406,8 +406,8 @@ def analyse(trigger, options="", return_range=False, create_plots=False):
         #* find maximum AMS value
         for i in range(len(cuts)):
             #two trees needs to get merched, test and signal
-            signal1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID==0)*weight".format(cuts[i]), dif = "test")
-            bckgrd1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID>0)*weight".format(cuts[i]), dif = "train")
+            signal1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID==0)*weight".format(cuts[i]), dif = "test")
+            bckgrd1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID>0)*weight".format(cuts[i]), dif = "train")
 
             #tmpsignal, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID==0)*weight".format(cuts[i]), dif = "test1")
             #tmpbckgrd, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID>0)*weight".format(cuts[i]), dif = "train1")
@@ -436,11 +436,11 @@ def analyse(trigger, options="", return_range=False, create_plots=False):
 
             
             #* make plot with maximum AMS
-            signal1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID==0)*weight".format(cuts[index]), dif = "test")
-            bckgrd1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID>0)*weight".format(cuts[index]), dif = "train")
+            signal1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID==0)*weight".format(cuts[index]), dif = "test")
+            bckgrd1, _ = createTH1F(test, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID>0)*weight".format(cuts[index]), dif = "train")
 
-            tmpsignal, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID==0)*weight".format(cuts[index]), dif = "test1")
-            tmpbckgrd, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 155, 16), "(BDT>{} &&classID>0)*weight".format(cuts[index]), dif = "train1")
+            tmpsignal, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID==0)*weight".format(cuts[index]), dif = "test1")
+            tmpbckgrd, _ = createTH1F(train, "recon_Hmass", np.linspace(90, 160, 16), "(BDT>{} &&classID>0)*weight".format(cuts[index]), dif = "train1")
             signal1.Add(tmpsignal)
             bckgrd1.Add(tmpbckgrd)
             signal1.Scale(1/signal1.Integral())
@@ -638,7 +638,7 @@ if __name__=="__main__":
             allvar.remove(var)
         
         # print(allvar)
-        train(trigger =trigger , variables = allvar)
+        train(trigger =trigger , variables = allvar, seed = sys.argv[4])
         
         #for i in triggers:
             #train(trigger=i)

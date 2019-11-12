@@ -41,7 +41,7 @@ def makecutgraph_fortmva(tree1, tree2, var, cuttingvar,ranges, ncuts, trigger,  
         #print(signal1.Integral()/bckgrd1.Integral())
         s = calc_AMS(signal, bckgrd)
         if not(np.isinf(s)):
-            tmp.append([i,s])
+            tmp.append([i,s, signal.Integral()])
         
         if i == ranges_BDT[0]:
             #just for comparison---
@@ -51,10 +51,11 @@ def makecutgraph_fortmva(tree1, tree2, var, cuttingvar,ranges, ncuts, trigger,  
             print(signal.Integral())
             print(bckgrd.Integral())
             signal, bckgrd = tmva_create2hist(tree1, tree2, "BDT", "classID>","-1000", ranges = ranges_BDT)
-            saveratioplot(signal, bckgrd, "BDT output", "signal", "background", calcAMS= True, log = True,  dif = dif+"_"+trigger, ratio = False, name = "BDT_final_{}".format(sim[trigger]))
+            saveratioplot(signal, bckgrd, "BDT output", "signal", "background", calcAMS= False, log = True,  dif = dif+"_"+trigger, ratio = False, name = "BDT_final_{}".format(sim[trigger]))
             
             del(signal,bckgrd)
 
+            # we need more events for final calculation
 
 
             signal, _ = createTH1F(tree1, var, ranges, constraints= "(classID==0)*weight")
@@ -64,17 +65,26 @@ def makecutgraph_fortmva(tree1, tree2, var, cuttingvar,ranges, ncuts, trigger,  
 
         del(signal, bckgrd)
 
-    tmp = np.array(tmp)            
-    index, value = max(enumerate(tmp[:,1]), key=itemgetter(1))
+    tmp = np.array(tmp)
+    index = 0
+    value = 0
+
+
+    for counter, curval in enumerate(tmp[:,1]):
+        if tmp[counter,2]>250:
+            if value < curval:
+                value = curval
+                index = counter
+    index1, value1 = max(enumerate(tmp[:,1]), key=itemgetter(1))
 
     sim_trigger = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40":"HLT_Quad", "HLT_PFHT180":"HLT_PF"}
 
     signal, bckgrd = tmva_create2hist(tree1, tree2, var, cuttingvar, tmp[index,0], ranges = ranges)
-    saveratioplot(signal, bckgrd,  "reconstructed m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcAMS = True, name = "recon_Hmass__BDT_{}".format(sim_trigger[trigger]))
-
+    saveratioplot(signal, bckgrd,  "m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcAMS = True, name = "recon_Hmass__BDT_{}".format(sim_trigger[trigger]))
+    print("{}: {} signal; {} background".format(trigger, signal.Integral(), bckgrd.Integral()))
 
     savegraph(tmp[:,0], tmp[:,1],"cutplot_"+sim[trigger]+"_final", "BDT output >",\
-        "AMS", text = "Max {} at {}".format(value,round(tmp[index,0],2)))
+        "AMS", text = "Max {} at {}".format(value1,round(tmp[index1,0],2)))
 
     return(finalAMS)
 
