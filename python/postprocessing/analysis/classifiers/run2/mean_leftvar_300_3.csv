@@ -1,0 +1,37 @@
+leftvar,AMS,AMSstd,ROCIntegral,overtrain
+Jet_HT,1.076,0.418,0.834,1.952
+"['HJet_qgl1', 'HJet_qgl2']",0.851,0.097,0.844,1.954
+"['WJet_btagDeepB1', 'WJet_btagDeepB2']",0.804,0.087,0.841,1.953
+"['WJet_btagDeepC1', 'WJet_btagDeepC2']",0.895,0.182,0.844,1.951
+"['WJet_mass1', 'WJet_mass2']",0.827,0.077,0.844,1.949
+"['WJet_nConstituents1', 'WJet_nConstituents2']",0.86,0.093,0.845,1.952
+"['WJet_neEmEF1', 'WJet_neEmEF2']",0.816,0.072,0.844,1.951
+"['WJet_neHEF1', 'WJet_neHEF2']",0.814,0.073,0.844,1.953
+"['WJet_pt1', 'WJet_pt2']",1.015,0.301,0.842,1.954
+"['WJet_qgl1', 'WJet_qgl2']",0.736,0.06,0.839,1.954
+"['bJet_mass1', 'bJet_mass2']",0.822,0.098,0.844,1.95
+"['bJet_pt1', 'bJet_pt2']",0.831,0.114,0.842,1.956
+deltaR_W,0.666,0.117,0.837,1.952
+deltaR_bb,0.845,0.088,0.844,1.951
+deltaR_reconHW,0.7,0.074,0.822,1.951
+recon_Hpt,0.812,0.098,0.842,1.948
+recon_Wmass,0.674,0.084,0.833,1.95
+recon_Wpt,0.806,0.085,0.844,1.952
+Jet_HT,1.076,0.418,0.834,1.952
+"['HJet_qgl1', 'HJet_qgl2']",0.851,0.097,0.844,1.954
+"['WJet_btagDeepB1', 'WJet_btagDeepB2']",0.804,0.087,0.841,1.953
+"['WJet_btagDeepC1', 'WJet_btagDeepC2']",0.895,0.182,0.844,1.951
+"['WJet_mass1', 'WJet_mass2']",0.827,0.077,0.844,1.949
+"['WJet_nConstituents1', 'WJet_nConstituents2']",0.86,0.093,0.845,1.952
+"['WJet_neEmEF1', 'WJet_neEmEF2']",0.816,0.072,0.844,1.951
+"['WJet_neHEF1', 'WJet_neHEF2']",0.814,0.073,0.844,1.953
+"['WJet_pt1', 'WJet_pt2']",1.015,0.301,0.842,1.954
+"['WJet_qgl1', 'WJet_qgl2']",0.736,0.06,0.839,1.954
+"['bJet_mass1', 'bJet_mass2']",0.822,0.098,0.844,1.95
+"['bJet_pt1', 'bJet_pt2']",0.831,0.114,0.842,1.956
+deltaR_W,0.666,0.117,0.837,1.952
+deltaR_bb,0.845,0.088,0.844,1.951
+deltaR_reconHW,0.7,0.074,0.822,1.951
+recon_Hpt,0.812,0.098,0.842,1.948
+recon_Wmass,0.674,0.084,0.833,1.95
+recon_Wpt,0.806,0.085,0.844,1.952

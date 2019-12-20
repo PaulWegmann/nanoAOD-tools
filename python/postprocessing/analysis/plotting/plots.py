@@ -116,7 +116,7 @@ def saveTH2Fplot(hist, xtitle, ytitle):
     #del(axish)
     
 
-def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [], log = False, ytitle = "Entries"):    
+def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [], log = False, ytitle = "Entries", name=""):    
     
     canvas = ROOT.TCanvas("c1","c1")
     pads = plot.OnePad()
@@ -198,8 +198,11 @@ def saveplot(hist,  xtitle, channel="", title="", linecolor=ROOT.kRed, stats = [
     legend = plot.PositionedLegend(0.2, 0.15,3,0.015)
     legend.AddEntry(hist,channel)
     if channel!="":
-        legend.Draw("SAME")    
-    canvas.SaveAs(''.join(e for e in channel if e.isalnum())+hist.GetTitle()+".pdf")
+        legend.Draw("SAME")   
+    if name == "": 
+        canvas.SaveAs(''.join(e for e in channel if e.isalnum())+hist.GetTitle()+".pdf")
+    else:
+        canvas.SaveAs(name+".pdf")
     canvas.Close()
     del(axish,pads, legend)
 
@@ -210,6 +213,29 @@ def calc_AMS(hist1,hist2, error=0, rd=-1, AMSmod = 1): # * calculate ams value o
     for i in range(hist1.GetNbinsX()):
         if hist2.GetBinContent(i+1)!=0:
             final+= ROOT.RooStats.AsimovSignificance(hist1.GetBinContent(i+1)+rest, hist2.GetBinContent(i+1), error)**2 # last entry is error, maybe add statistical error of histogramms
+            rest = 0
+        else:
+            rest+=hist1.GetBinContent(i+1)
+    final = np.sqrt(final*AMSmod)
+    if rd == -1:
+        if final<10 and final>1:
+            final = round(final, 2)
+        elif final<1:
+            final = round(final,3)
+        elif final>10 and final<100:
+            final = round(final, 1)
+        elif final>100:
+            final = int(final)
+    else:
+        final = round(final, rd)
+    return(final)
+
+def calcsoverb(hist1,hist2, error=0, rd=-1, AMSmod = 1): # * calculate ams value of 2 histograms, first hist is signal
+    final = 0
+    rest = 0
+    for i in range(hist1.GetNbinsX()):
+        if hist2.GetBinContent(i+1)!=0:
+            final+= ((hist1.GetBinContent(i+1)+rest)/np.sqrt(hist2.GetBinContent(i+1)))**2 # last entry is error, maybe add statistical error of histogramms
             rest = 0
         else:
             rest+=hist1.GetBinContent(i+1)
@@ -305,6 +331,9 @@ linecolor2=ROOT.kBlue, stats = [], dif="", calcArea=False, calcAMS=False, AMSmod
 
     if calcAMS:
         AMS = calc_AMS(hist1, hist2, AMSmod=AMSmod)
+        AMS_check = calcsoverb(hist1, hist2)
+        print("------------ AMS comparison ------------")
+        print(AMS, AMS_check)
 
     if log:
         count1 = 0
@@ -418,7 +447,7 @@ linecolor2=ROOT.kBlue, stats = [], dif="", calcArea=False, calcAMS=False, AMSmod
     if calcAMS:
         # if rdAMS<=0:
         #     text1 = ROOT.TText(.5,.5, "AMS: "+str(int(final)))    
-        text1 = ROOT.TText(.5,.5, "AMS: "+str(AMS))
+        text1 = ROOT.TLatex(.5,.5, "Binned #frac{s}{#sqrt{b}}: "+str(AMS))
         text1.SetNDC() #so it orientates on the canvas
         text1.SetX(0.18)
         text1.SetY(0.88)

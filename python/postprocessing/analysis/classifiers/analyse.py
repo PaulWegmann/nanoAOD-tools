@@ -182,7 +182,8 @@ if __name__=="__main__":
                     
 
                     mad_val, mse_val, AMSss, AMSrecon, signalevents, bckgrdevents, minimum, maximum = analyse(trigger, options=optionssimplified, return_range = True) # * average mean distance as further parameter to check how distinctive the bdt is
-
+                    if mad_val==0 & mse_val==0 & AMSss==0 & AMSrecon==0 & signalevents==0 & bckgrdevents==0 & minimum==0 & maximum==0:
+                        continue 
                     
                     # ---------------------------------------------------------------------
                     # * calculate parameter which should describe training and result -----

@@ -1,0 +1,44 @@
+\begin{tabular}{lrrrr}
+\toprule
+                                        leftvar &    AMS &  AMSstd &  ROCIntegral &  overtrain \\
+\midrule
+ Jet\_HT &  1.298 &  0.619 &  0.829 &  1.949 \\
+ ['HJet\_qgl1', 'HJet\_qgl2'] &  1.047 &  0.484 &  0.841 &  1.954 \\
+ ['WJet\_btagDeepB1', 'WJet\_btagDeepB2'] &  0.792 &  0.139 &  0.837 &  1.953 \\
+ ['WJet\_btagDeepC1', 'WJet\_btagDeepC2'] &  0.941 &  0.280 &  0.841 &  1.952 \\
+ ['WJet\_mass1', 'WJet\_mass2'] &  0.908 &  0.362 &  0.841 &  1.952 \\
+ ['WJet\_nConstituents1', 'WJet\_nConstituents2'] &  1.129 &  0.688 &  0.841 &  1.952 \\
+ ['WJet\_neEmEF1', 'WJet\_neEmEF2'] &  0.993 &  0.333 &  0.841 &  1.953 \\
+ ['WJet\_neHEF1', 'WJet\_neHEF1'] &  1.006 &  0.434 &  0.840 &  1.953 \\
+ ['WJet\_pt1', 'WJet\_pt2'] &  1.003 &  0.485 &  0.840 &  1.953 \\
+ ['WJet\_qgl1', 'WJet\_qgl2'] &  0.804 &  0.213 &  0.836 &  1.952 \\
+ ['bJet\_mass1', 'bJet\_mass2'] &  1.140 &  0.754 &  0.840 &  1.952 \\
+ ['bJet\_pt1', 'bJet\_pt2'] &  1.083 &  0.827 &  0.837 &  1.952 \\
+ deltaR\_W &  0.778 &  0.239 &  0.838 &  1.955 \\
+ deltaR\_bb &  1.242 &  0.836 &  0.841 &  1.953 \\
+ deltaR\_reconHW &  0.806 &  0.436 &  0.820 &  1.947 \\
+ recon\_Hmass &  0.000 &  0.000 &  0.825 &  1.950 \\
+ recon\_Hpt &  1.019 &  0.601 &  0.840 &  1.951 \\
+ recon\_Wmass &  0.672 &  0.082 &  0.830 &  1.953 \\
+ recon\_Wpt &  0.974 &  0.388 &  0.840 &  1.951 \\
+ Jet\_HT &  1.298 &  0.619 &  0.829 &  1.949 \\
+ ['HJet\_qgl1', 'HJet\_qgl2'] &  1.047 &  0.484 &  0.841 &  1.954 \\
+ ['WJet\_btagDeepB1', 'WJet\_btagDeepB2'] &  0.792 &  0.139 &  0.837 &  1.953 \\
+ ['WJet\_btagDeepC1', 'WJet\_btagDeepC2'] &  0.941 &  0.280 &  0.841 &  1.952 \\
+ ['WJet\_mass1', 'WJet\_mass2'] &  0.908 &  0.362 &  0.841 &  1.952 \\
+ ['WJet\_nConstituents1', 'WJet\_nConstituents2'] &  1.129 &  0.688 &  0.841 &  1.952 \\
+ ['WJet\_neEmEF1', 'WJet\_neEmEF2'] &  0.993 &  0.333 &  0.841 &  1.953 \\
+ ['WJet\_neHEF1', 'WJet\_neHEF1'] &  1.006 &  0.434 &  0.840 &  1.953 \\
+ ['WJet\_pt1', 'WJet\_pt2'] &  1.003 &  0.485 &  0.840 &  1.953 \\
+ ['WJet\_qgl1', 'WJet\_qgl2'] &  0.804 &  0.213 &  0.836 &  1.952 \\
+ ['bJet\_mass1', 'bJet\_mass2'] &  1.140 &  0.754 &  0.840 &  1.952 \\
+ ['bJet\_pt1', 'bJet\_pt2'] &  1.083 &  0.827 &  0.837 &  1.952 \\
+ deltaR\_W &  0.778 &  0.239 &  0.838 &  1.955 \\
+ deltaR\_bb &  1.242 &  0.836 &  0.841 &  1.953 \\
+ deltaR\_reconHW &  0.806 &  0.436 &  0.820 &  1.947 \\
+ recon\_Hmass &  0.000 &  0.000 &  0.825 &  1.950 \\
+ recon\_Hpt &  1.019 &  0.601 &  0.840 &  1.951 \\
+ recon\_Wmass &  0.672 &  0.082 &  0.830 &  1.953 \\
+ recon\_Wpt &  0.974 &  0.388 &  0.840 &  1.951 \\
+\bottomrule
+\end{tabular}

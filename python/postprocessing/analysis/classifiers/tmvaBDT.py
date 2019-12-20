@@ -39,16 +39,16 @@ signal = "data/breg/nores/signal.root",bckgrd = "data/breg/nores/bckgrd.root", T
             "WJet_btagDeepC2",
             "bJet_mass1",
             "bJet_mass2",
-            "WJet_mass1", #*curresults
-            "WJet_mass2", #*curresults
-            "WJet_neEmEF1", #*curresults
-            "WJet_neEmEF2", #*curresults
-            "WJet_neHEF1", #*curresults
-            "WJet_neHEF2", #*curresults
+            #"WJet_mass1", #*curresults
+            #"WJet_mass2", #*curresults
+            #"WJet_neEmEF1", #*curresults
+            #"WJet_neEmEF2", #*curresults
+            #"WJet_neHEF1", #*curresults
+            #"WJet_neHEF2", #*curresults
             "WJet_qgl1", 
             "WJet_qgl2",
-            "HJet_qgl1", #*curresults
-            "HJet_qgl2", #*curresults
+            #"HJet_qgl1", #*curresults
+            #"HJet_qgl2", #*curresults
             "WJet_nConstituents1", 
             "WJet_nConstituents2"
 
@@ -440,13 +440,17 @@ def analyse(trigger, options="", return_range=False, create_plots=False):
             del(signal1, bckgrd1)
 
         value = 0
-        while(value == 0):
-            index, helper =  max(enumerate(AMS), key=itemgetter(1))
-            if eventsleft[index][0] < 150:
-                del(AMS[index], eventsleft[index])
-            else:
-                value = helper
-                
+        try:
+            while(value == 0):
+                index, helper =  max(enumerate(AMS), key=itemgetter(1))
+                if eventsleft[index][0] < 150:
+                    del(AMS[index], eventsleft[index])
+                else:
+                    value = helper
+        except:
+            return(0, 0, 0, 0, 0, 0, 0, 0)            
+            return(mad1, mse1, AMSval, value, eventsleft[index][0], eventsleft[index][1], minimum, maximum )
+
         
         if create_plots:
             savegraph(cuts, AMS, "AMS_graph_{}".format(trigger), "BDT>", "AMS", heading=trigger,  text =  "Max {} at {}".format(value, round(cuts[index],2)))

@@ -1,0 +1,11 @@
+Option,AMS,AMS std,Nsignal,Nsignalstd,ROCIntegral,Overtrain
+BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MaxDepth=3:MinNodeSize=1%:NTrees=100,0.932,0.018,411.0,99.0,0.828,1.943
+BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MaxDepth=3:MinNodeSize=1%:NTrees=400,1.118,0.272,300.0,105.0,0.832,1.929
+BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MaxDepth=3:MinNodeSize=10%:NTrees=250,0.931,0.026,336.0,120.0,0.83,1.945
+BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MaxDepth=3:MinNodeSize=5%:NTrees=400,1.099,0.247,319.0,86.0,0.832,1.938
+BoostType=AdaBoost:VarTransform=U:SeparationType=CrossEntropy:SeparationType=CrossEntropy:MinNodeSize=1%:NTrees=100:MaxDepth=5,1.431,1.024,241.0,157.0,0.829,1.924
+BoostType=AdaBoost:VarTransform=U:SeparationType=GiniIndexWithLaplace:SeparationType=GiniIndexWithLaplace:MaxDepth=3:MinNodeSize=1%:NTrees=1000,0.988,0.006,780.0,66.0,0.84,1.968
+BoostType=AdaBoost:VarTransform=U:SeparationType=GiniIndexWithLaplace:SeparationType=GiniIndexWithLaplace:MinNodeSize=1%:NTrees=100:MaxDepth=5,0.972,0.017,648.0,233.0,0.836,1.968
+BoostType=AdaBoost:VarTransform=U:SeparationType=GiniIndexWithLaplace:SeparationType=GiniIndexWithLaplace:MinNodeSize=1%:NTrees=400:MaxDepth=5,1.043,0.016,427.0,165.0,0.839,1.95
+BoostType=AdaBoost:VarTransform=U:SeparationType=GiniIndexWithLaplace:SeparationType=GiniIndexWithLaplace:MinNodeSize=1%:NTrees=600:MaxDepth=5,1.076,0.015,555.0,220.0,0.838,1.933
+BoostType=AdaBoost:VarTransform=U:SeparationType=GiniIndexWithLaplace:SeparationType=GiniIndexWithLaplace:NTrees=1000:MinNodeSize=7.5%:MaxDepth=15,0.965,0.014,1084.0,179.0,0.837,1.954

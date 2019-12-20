@@ -187,7 +187,7 @@ if __name__=="__main__":
             else:
                 dataexport = dataexport.append({"variable":cuttingvar, "trigger":i, "cut at":round(bestcut[i][maximum1[0],0],2),"AMS":(maximum1[1]), "improved":False}, ignore_index=True)
             savegraph(bestcut[i][:,0], bestcut[i][:,1], "cutplot"+cuttingvar[:-1]+"_"+i+"notincsig", sim[cuttingvar], 
-            "AMS", text = "Max {} at {}".format(maximum1[1], round(bestcut[i][maximum1[0],0],2)))
+            "Binned s/#sqrt{b}: ", text = "Max {} at {}".format(maximum1[1], round(bestcut[i][maximum1[0],0],2)))
         os.chdir("../")
 
 
@@ -222,7 +222,7 @@ if __name__=="__main__":
 
         tmp = np.array(tmp)
         maximum1 = max(enumerate(tmp[:,1]), key=itemgetter(1))
-        savegraph(tmp[:,0], tmp[:,1], "cutplot"+var+"_"+j, "\Delta R of reconstructed H and W", 
+        f(tmp[:,0], tmp[:,1], "cutplot"+var+"_"+j, "\Delta R of reconstructed H and W", 
         "AMS", text = "Max {} at {}".format(maximum1[1], round(tmp[maximum1[0],0], 2)))
     """
     #* here going for calculating weighted AMS values for given cuts
@@ -289,7 +289,7 @@ if __name__=="__main__":
 
         signal1, stats1 = createTH1F(signal, var, ranges, constraints= "("+allgoodcuts+"&&"+j+ ">0)*weight", dif="signal")
         bckgrd1, trash = createTH1F(bckgrd, var, ranges, constraints= "("+allgoodcuts+"&&"+j+">0)*weight")
-        saveratioplot(signal1,bckgrd1, "m_{H}", "signal","background", dif = "allgoodcuts_{}".format(j), calcArea = False, calcAMS=True, ratio = False, log = True)
+        saveratioplot(signal1,bckgrd1, "m_{H}", "H #rightarrow bb","QCD multijet", dif = "allgoodcuts_{}".format(j), calcArea = False, calcAMS=True, ratio = False, log = True)
         del(signal1,bckgrd1)
     """
     """

@@ -64,20 +64,20 @@ if __name__=="__main__":
     
     # path = "dataset/Method_BDT/BDT/"
 
-    
-    # infile = ROOT.TFile.Open("../../classifiers/tmvaBDT{}.root".format(selected_triggers[0]), 'read')
+
+    # infile = ROOT.TFile.Open("../../classifiers/tmvaBDT{}.root".format(selected_triggers[1]), 'read')
     # tree = infile.Get("dataset/TestTree")
 
     # roc = infile.Get(path+"MVA_BDT_rejBvsS")
 
-    # # canvas = ROOT.TCanvas("c1","c1")
-    # # roc.SetXTitle("Background Rejection")
-    # # roc.SetYTitle("Signal Efficency")
-    # # roc.SetLineColor(ROOT.kRed)
-    # # roc.Draw("L")
-    # # canvas.SaveAs("ROC_example.pdf")
-    # # canvas.Close()
-    
+    # canvas = ROOT.TCanvas("c1","c1")
+    # roc.SetXTitle("Background Rejection")
+    # roc.SetYTitle("Signal Efficency")
+    # roc.SetLineColor(ROOT.kRed)
+    # roc.Draw("L")
+    # canvas.SaveAs("ROC_example.pdf")
+    # canvas.Close()
+
     # signal1, bckgrd1 = tmva_create2hist(tree, tree, "BDT", "BDT>", 0, np.linspace(0,1, 30))
 
     # saveratioplot(signal1, bckgrd1, "BDT output", "signal", "background", ratio = False, name = "BDT_ROC_example")
@@ -146,7 +146,7 @@ if __name__=="__main__":
     # bckgrd1.Fit("gaus")
 
 
-    saveratioplot(bckgrd1, signal1, "m_{H} (GeV)", "With breg", "Without breg", name = "Compare_breg", ratio = False)
+    saveratioplot(bckgrd1, signal1, "m_{H} (GeV)", "With b-regression", "Without b-regression", name = "Compare_breg", ratio = False)
 
     #function1 = ROOT.TF1("m1","gaus",min(ranges["recon_Hmass"]), max(ranges["recon_Hmass"]))
     #function2 = ROOT.TF1("m2","gaus",min(ranges["recon_Hmass"]), max(ranges["recon_Hmass"]))
@@ -173,7 +173,7 @@ if __name__=="__main__":
     signal1, _ = createTH1F(signal, var, ranges[var], "weight", dif = "signal")
     bckgrd1, _  = createTH1F(bckgrd, var, ranges[var], "weight")
 
-    saveratioplot(signal1, bckgrd1, "m_{H} (GeV)", "signal", "background", name = "breg_AMS", ratio=False, log=True, calcAMS=True)
+    saveratioplot(signal1, bckgrd1, "m_{H} (GeV)", "H #rightarrow bb", "QCD multijet", name = "breg_AMS", ratio=False, log=True, calcAMS=True)
     del(signal1, bckgrd1)
 
     # signal1, _ = createTH1F(signal_nobreg, var, ranges[var], "weight", dif = "signal")
@@ -207,6 +207,8 @@ if __name__=="__main__":
     bckgrd1 = ROOT.TH1F("tmp", "tmp", len(ranges["nrightjets"])-1, ranges["nrightjets"])
     for i in range(len(ranges["nrightjets"])-1):
         bckgrd1.SetBinContent(i+1, values[i])
+
+    
     
     bckgrd1.Sumw2()
     
@@ -238,6 +240,104 @@ if __name__=="__main__":
     saveratioplot(signal1, bckgrd1, "Number of jets assigned correctly", "Closest to 80 GeV", "Max pt", ratio=False, name = "nrightjets_W")
     del(signal1, bckgrd1)
 
+
+    #* try to find alternative procedures with closest angle
+    infileasdf = ROOT.TFile.Open("../../signal/breg/Wrecons/signal.root")
+    tmp = infileasdf.Get("Events")
+    
+    signal1, _ = createTH1F(signal, "wnrightjets", ranges["wnrightjets"], "weight", dif = "signal")
+    bckgrd1, _  = createTH1F(tmp, "wnrightjetsdelta13", ranges["wnrightjets"], "weight")
+
+    signal1, _ = createTH1F(tmp, "genjets_Hpt", ranges["Jet_pt"], "weight")
+    saveplot(signal1, "p_{t} (GeV)", "Reconstructed Higgs boson", name = "app/genjets_Hpt")
+
+    
+    
+    saveratioplot(signal1, bckgrd1, "Number of jets assigned correctly", "Invariant mass closest to 80 GeV", "Angular distance closest to 1.3", ratio=False, name = "nrightjets_W_delta")
+    del(signal1, bckgrd1, tmp, infileasdf)
+
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! counting Higgs events --------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+
+    signal1, _ = createTH1F(signal, "nrightjets", ranges["nrightjets"], "((Sum$(Jet_btagDeepB>0.4941))>2)", dif = "signal")
+    print("Number of events which have more than two bjets: {}".format(signal1.GetEntries()))
+    del(signal1)
+    signal1, _ = createTH1F(signal, "nrightjets", ranges["nrightjets"], dif = "signal")
+    print("Out of {} unweighted events".format(signal1.GetEntries()))
+    del(signal1)
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! distros utilized for reconstruction ------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+
+
+    distros = ["genjets_deltaR_W", "genjets_WMass", "genjets_Hmass", "Jet_pt[asso_jet_W_id1]", "Jet_pt[asso_jet_W_id2]",
+                "Jet_btagDeepB[asso_bjet_H_id1]", "Jet_btagDeepB[asso_bjet_H_id2]", "genjets_deltaR_H"]
+
+
+    signal1, _ = createTH1F(signal, distros[1], ranges["recon_Wmass"], "weight", dif = "signal")
+    saveplot(signal1, "m_{W} (GeV)", "Generated jets", name = "app/genjets_mW")
+    del(signal1)
+
+    
+    signal1, _ = createTH1F(signal, distros[3], ranges["Jet_pt"], "weight", dif = "signal")
+    signal2, _ = createTH1F(signal, distros[4], ranges["Jet_pt"], "weight", dif = "signal")
+    signal1.Add(signal2)
+    saveplot(signal1, "p_{t} (GeV)", "Generated jets", name = "app/genjets_ptW")
+    del(signal1, signal2)
+
+    signal1, _ = createTH1F(signal, distros[5], ranges["Jet_btagDeepB"], "weight", dif = "signal")
+    signal2, _ = createTH1F(signal, distros[6], ranges["Jet_btagDeepB"], "weight", dif = "signal")
+    signal1.Add(signal2)
+    saveplot(signal1, "b-tagging discriminator output", "Generated jets", name = "app/genjets_btagH")
+    del(signal1, signal2)
+
+
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #! counting alternative reconstructions -----------------------------------------------
+    #* ------------------------------------------------------------------------------------
+    #* ------------------------------------------------------------------------------------
+
+    infile5 = ROOT.TFile.Open("../../signal/breg/Wrecons/signal.root")
+    signalrecons = infile5.Get("Events")
+    
+    recons = ["wnrightjets", "wnrightjetsdelta13", "wnrightjets_deltaandmass", "wnrightjets_maxpt", "wnrightjets_maxptandmass",
+                "nrightjets_deltaandbtag", "nrightjets_delta", "nrightjets_maxptandbtag", "nrightjets_maxpt", "nrightjets"]
+    
+    columns = ["W normal", "W delta 1.3", "W delta and normal", "W max pt", "W max pt and normal", "H delta3 and max btag", "H delta3", 
+            "H max pt and btag", "H max pt", "H max btag"]
+
+    signal1, _ = createTH1F(signalrecons, distros[0], ranges["deltaR_bb"], "weight", dif = "signal")
+    saveplot(signal1, "#DeltaR_{W}", "Generated jets", name = "app/genjets_deltarW")
+    del(signal1)
+
+
+
+    for index, recon in enumerate(recons):
+        finaldict = {}
+        tmp = []
+        for i in range(3):
+            signal1, _ = createTH1F(signalrecons, recon, ranges["wnrightjets"], "({}>{} && {}<{})*weight".format(recon, i-0.5, recon, i+0.5), dif = "signal")
+            tmp.append(int(signal1.Integral()))
+            del(signal1)
+        print(columns[index], np.array(tmp)/float(np.sum(tmp)))        
+        #finaldict.update({columns[index]:tmp})
+
+    #export = pd.DataFrame(finaldict)
+    #export.to_csv("ReconstructionTable.csv", index=True)
+
+
+    signal1, _ = createTH1F(signalrecons, distros[7], ranges["deltaR_bb"], "weight", dif = "signal")
+    saveplot(signal1, "#DeltaR_{H}", "Generated jets", name = "app/genjets_deltarH")
+    del(signal1)
+
+
+
     #* ------------------------------------------------------------------------------------
     #* ------------------------------------------------------------------------------------
     #! Number of rightly assigned jets after selection and reconstruction -----------------
@@ -253,7 +353,7 @@ if __name__=="__main__":
     del(signal1, bckgrd1)
     #* ------------------------------------------------------------------------------------
     #* ------------------------------------------------------------------------------------
-    #! creating plots of no selection applied and calculate AMS value
+    #! creating plots of no selection applied and calculate AMS value ---------------------
     #* ------------------------------------------------------------------------------------
     #* ------------------------------------------------------------------------------------
     
@@ -261,20 +361,20 @@ if __name__=="__main__":
     
     signal1, _ = createTH1F(signal_nobreg, var, ranges[var], "weight" , dif = "signal")
     bckgrd1, _ = createTH1F(bckgrd_nobreg, var, ranges[var], "weight")
-    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcAMS = True, name = "recon_Hmass_signal_background")
+    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "H #rightarrow bb", "QCD multijet", log = True, ratio= False, calcAMS = True, name = "recon_Hmass_signal_background")
     signal1.Scale(1/signal1.Integral())
     bckgrd1.Scale(1/bckgrd1.Integral())
-    saveratioplot(signal1, bckgrd1, "m_{H} (GeV)", "signal", "background", y_label = "Normed entries", name = "recon_Hmass_signal_background_normed", ratio = False)
+    saveratioplot(signal1, bckgrd1, "m_{H} (GeV)", "H #rightarrow bb", "QCD multijet", y_label = "Normalized entries", name = "recon_Hmass_signal_background_normed", ratio = False)
     del(signal1, bckgrd1)
 
     var = "recon_Wmass"
     
     signal1, _ = createTH1F(signal, var, ranges[var], "weight" , dif = "signal")
     bckgrd1, _ = createTH1F(bckgrd, var, ranges[var], "weight")
-    saveratioplot(signal1, bckgrd1,  "m_{W} (GeV)",  "signal", "background", log = True, ratio= False, calcAMS = True, name = "recon_Wmass_signal_background")
+    saveratioplot(signal1, bckgrd1,  "m_{W} (GeV)",  "H #rightarrow bb", "QCD multijet", log = True, ratio= False, calcAMS = True, name = "recon_Wmass_signal_background")
     signal1.Scale(1/signal1.Integral())
     bckgrd1.Scale(1/bckgrd1.Integral())
-    saveratioplot(signal1, bckgrd1, "m_{W} (GeV)", "signal", "background", y_label = "Normed entries", name = "recon_Wmass_signal_background_normed", ratio = False)
+    saveratioplot(signal1, bckgrd1, "m_{W} (GeV)", "H #rightarrow bb", "QCD multijet", y_label = "Normalized entries", name = "recon_Wmass_signal_background_normed", ratio = False)
     del(signal1, bckgrd1)
 
     #* ------------------------------------------------------------------------------------
@@ -286,14 +386,58 @@ if __name__=="__main__":
     var = "recon_Wmass"
     signal1, _ = createTH1F(signal, var, ranges[var], "weight", dif = "signal")
     bckgrd1, _ = createTH1F(signal, "genjets_WMass", ranges[var], "weight")
-    saveratioplot(signal1, bckgrd1, "m_{W}  (GeV)", "reconstructed level", "generated level", calcArea = False, ratio = False, name = "Wmass_gen-level_recon-level__ratio")
+    saveratioplot(signal1, bckgrd1, "m_{W}  (GeV)", "Reconstructed level", "Generated level", calcArea = False, ratio = False, name = "Wmass_gen-level_recon-level__ratio")
     del(signal1, bckgrd1)
 
     var = "recon_Hmass"
     signal1, _ = createTH1F(signal, var, ranges[var], "weight", dif = "signal")
     bckgrd1, _ = createTH1F(signal, "genjets_Hmass", ranges[var], "weight")
-    saveratioplot(signal1, bckgrd1,"m_{H} (GeV)", "reconstructed level", "generated level", calcArea = False, ratio = False, name = "Hmass_gen-level_recon-level__ratio")
-    del(signal1, bckgrd1)
+    helper1, _ = createTH1F(signal, "original_Hmass", ranges[var], "weight")
+
+
+    """
+    canvas = ROOT.TCanvas("c1","c1")
+
+    axish = createAxisHists(2,hist1,hist1.GetXaxis().GetXmin(),hist1.GetXaxis().GetXmax()-0.01)
+    axish[0].GetYaxis().SetRangeUser(0,1.5*max([hist1.GetMaximum(), hist2.GetMaximum(), helper1.GetMaximum()]))
+    axish[0].GetYaxis().SetTitle("Entries")
+
+    axish[0].Draw()
+
+
+    hist1.SetLineColor(ROOT.kRed)
+    hist1.SetMarkerStyle(20)
+    hist1.SetMarkerColor(ROOT.kRed+3)
+    hist2.SetMarkerStyle(22)
+    hist2.SetLineColor(ROOT.kBlue)
+    hist2.SetMarkerColor(ROOT.kBlue+3)
+    helper1.SetLineColor(ROOT.kGreen)
+    helper1.SetMarkerColor(ROOT.kGreen+3)
+    helper1.SetMarkerStyle(24)
+
+    hist1.Draw("SAME")#both histograms are drawn into the same pad
+    hist2.Draw("SAME")
+    #helper1.Draw("Same")        
+
+    legend = plot.PositionedLegend(0.4, 0.15, 3, 0.015)
+    legend.AddEntry(hist1, "reconstructed level")
+    legend.AddEntry(hist2, "generated jets")
+    #legend.AddEntry(helper1, "generated particles")
+
+    legend.Draw("SAME")
+    
+    canvas.SaveAs("Hmass_gen-level_recon-level__ratio.pdf")
+    
+    canvas.Close()
+    del(legend, canvas)
+    """
+
+
+
+
+
+    saveratioplot(signal1, bckgrd1,"m_{H} (GeV)", "Reconstructed level", "Generated level", calcArea = False, ratio = False, name = "Hmass_gen-level_recon-level__ratio")
+    del(signal1,bckgrd1, helper1)
 
     #* ------------------------------------------------------------------------------------
     #* ------------------------------------------------------------------------------------
@@ -331,12 +475,14 @@ if __name__=="__main__":
     #* ------------------------------------------------------------------------------------
 
     sim = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40":"HLT_Quad", "HLT_PFHT180":"HLT_PF"}
+    sim2 = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40":"Quad trigger", "HLT_PFHT180":"HT180 trigger"}
+
 
     i = "recon_Hmass"
     for j in selected_triggers:
         tmp1, stats1 = createTH1F(signal, i, ranges[i],constraints= "weight", normalise = True, dif="signal")
         tmp2, trash = createTH1F(signal, i, ranges[i], constraints= "("+j+">0)*weight", normalise = True)
-        saveratioplot(tmp2, tmp1, "m_{H} (GeV)",  sim[j], "no trigger",  dif = j, calcArea=False, name = "reconHmass{}shape".format(sim[j]), y_label = "Normed entries")
+        saveratioplot(tmp2, tmp1, "m_{H} (GeV)",  sim2[j], "no trigger",  dif = j, calcArea=False, name = "reconHmass{}shape".format(sim[j]), y_label = "Normalized entries")
         del(tmp1,tmp2)
 
 
@@ -351,7 +497,9 @@ if __name__=="__main__":
     for j in selected_triggers:
         signal1, _ = createTH1F(signal, var, ranges[var], "({}>0)*weight".format(j) , dif = "signal")
         bckgrd1, _ = createTH1F(bckgrd, var, ranges[var], "({}>0)*weight".format(j))
-        saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcAMS = True, name = "recon_Hmass_{}".format(sim[j]))
+        print("{}: Signal {}, Backround {}".format(j, signal1.Integral(), bckgrd1.Integral()) )
+
+        saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "H #rightarrow bb", "QCD multijet", log = True, ratio= False, calcAMS = True, name = "recon_Hmass_{}".format(sim[j]))
         del(signal1, bckgrd1)
 
     # var = "recon_Wmass"
@@ -377,12 +525,12 @@ if __name__=="__main__":
         for va in var:
             signal1, _ = createTH1F(signal, va, ranges[va], "({}>0)*weight".format(j) , dif = "signal", normalise = True)
             bckgrd1, _ = createTH1F(bckgrd, va, ranges[va], "({}>0)*weight".format(j), normalise = True)
-            saveratioplot(signal1, bckgrd1,  sims[va],  "signal", "background", log = False, ratio= False, calcArea=True, calcAMS = False, name = "{}_{}".format(names[va], sim[j]), y_label = "Normed entries")
+            saveratioplot(signal1, bckgrd1,  sims[va],  "H #rightarrow bb", "QCD multijet", log = False, ratio= False, calcArea=True, calcAMS = False, name = "{}_{}".format(names[va], sim[j]), y_label = "Normalized entries")
             del(signal1, bckgrd1)
 
 
     cuttingvars = {"Jet_pt[recon_WJets_id[0]]>":[0, 200], "deltaR_reconHW<":[0.5,4.5], "deltaR_W<": [0,7]}
-    sim = {"deltaR_W<":"#DeltaR_{W} <", "deltaR_reconHW<":"#DeltaR_{HW} <", "Jet_pt[recon_WJets_id[0]]>":"p_{T} of high energy W jet (GeV) <"}
+    sim = {"deltaR_W<":"#DeltaR_{W}", "deltaR_reconHW<":"#DeltaR_{HW}", "Jet_pt[recon_WJets_id[0]]>":"p_{T} of high energy W jet (GeV)"}
     #cuttingvars = {"Jet_HT>":[100,600],"recon_Wpt>":[0, 250], "recon_Hpt>":[50,250]}
     
     #* ------------------------------------------------------------------------------------
@@ -392,7 +540,7 @@ if __name__=="__main__":
     #* ------------------------------------------------------------------------------------
     
     cuttingvars = {"deltaR_W<":[0, 6], "deltaR_reconHW<":[0.5,4.5], "recon_Wpt<": [0,500]}
-    sim = {"deltaR_W<":"#DeltaR_{W} <", "deltaR_reconHW<":"#DeltaR_{HW} <", "recon_Wpt<":"p_{T} of W boson <"}#"Jet_pt[recon_WJets_id[0]]>":"p_{T} of high energy W jet (GeV) <"}
+    sim = {"deltaR_W<":"#DeltaR_{W}", "deltaR_reconHW<":"#DeltaR_{HW}", "recon_Wpt<":"p_{T} of W boson"}#"Jet_pt[recon_WJets_id[0]]>":"p_{T} of high energy W jet (GeV) <"}
     sim_trigger = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40":"HLT_Quad", "HLT_PFHT180":"HLT_PF"}
     
 
@@ -415,7 +563,7 @@ if __name__=="__main__":
             maximum1 = max(enumerate(bestcut[i][:,1]), key=itemgetter(1))
             
             savegraph(bestcut[i][:,0], bestcut[i][:,1], "cutplot_{}_{}".format(cuttingvar, sim_trigger[i]), sim[cuttingvar], 
-            "AMS", text = "Max {} at {}".format(maximum1[1], round(bestcut[i][maximum1[0],0],2)))
+            "Binned s/#sqrt{b}: ", text = "Max {} at {}".format(maximum1[1], round(bestcut[i][maximum1[0],0],2)))
     
 
 
@@ -436,7 +584,7 @@ if __name__=="__main__":
     bckgrd1, _ = createTH1F(bckgrd, va, ranges[va], "({} && {}>0)*weight".format(allgoodcuts_quad, selected_triggers[0]))
 
     #print(signal1.Integral(), bckgrd1.Integral())
-    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcArea=False, calcAMS = True, name = "allgoodcuts_{}".format(sim_trigger[selected_triggers[0]]))
+    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "H #rightarrow bb", "QCD multijet", log = True, ratio= False, calcArea=False, calcAMS = True, name = "allgoodcuts_{}".format(sim_trigger[selected_triggers[0]]))
     del(signal1, bckgrd1)
 
 
@@ -444,7 +592,7 @@ if __name__=="__main__":
     bckgrd1, _ = createTH1F(bckgrd, va, ranges[va], "({} && {}>0)*weight".format(allgoodcuts_pf, selected_triggers[1]))
 
     #print(signal1.Integral(), bckgrd1.Integral())
-    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "signal", "background", log = True, ratio= False, calcArea=False, calcAMS = True, name = "allgoodcuts_{}".format(sim_trigger[selected_triggers[1]]))
+    saveratioplot(signal1, bckgrd1,  "m_{H} (GeV)",  "H #rightarrow bb", "QCD multijet", log = True, ratio= False, calcArea=False, calcAMS = True, name = "allgoodcuts_{}".format(sim_trigger[selected_triggers[1]]))
     del(signal1, bckgrd1)
 
 
@@ -517,8 +665,8 @@ if __name__=="__main__":
     "bJet_pt1":"p_{T} of H-jets higher", "bJet_pt2":"p_{T} of H-jets lower",
     "!WJet_neEmEF":"Neutral Electromagnetic Energy Fraction for W-jets",
     "!WJet_neHEF":"Neutral Hadron Energy Fraction for W-jets", 
-    "!WJet_qgl":"Quark vs Gluon likelihood discriminator for W-jets",
-    "!HJet_qgl":"Quark vs Gluon likelihood discriminator for H-jets",
+    "!WJet_qgl":"Quark vs Gluon discriminator for W-jets",
+    "!HJet_qgl":"Quark vs Gluon discriminator for H-jets",
     "!WJet_nConstituents":"Number of jet constituents for W-jets", "!WJet_chHEF":"Charged hadronic energy fraction for W-jets"}
 
 
@@ -550,7 +698,7 @@ if __name__=="__main__":
                     area.append([saveratioplot(signal1, bckgrd1, va,  "signal", "background", return_area=True, calcArea=True), 
                     saveratioplot(signal2, bckgrd2, va,  "signal", "background", return_area=True, calcArea=True)])
                     if area[-1][-1]<0.9:
-                        saveratioplot(signal2, bckgrd2, nice_plot_dict[va],  "signal", "background", ratio=False, return_area=False, calcArea=True, name = "cuts/distributions/"+va+sim_trigger[trigger])
+                        saveratioplot(signal2, bckgrd2, nice_plot_dict[va],  "H #rightarrow bb", "QCD multijet", ratio=False, return_area=False, calcArea=True, name = "cuts/distributions/"+va+sim_trigger[trigger])
                     
 
                     del(signal1, bckgrd1 , signal2, bckgrd2)
@@ -560,7 +708,7 @@ if __name__=="__main__":
 
                     area.append(saveratioplot(signal1, bckgrd1, va,  "signal", "background", return_area=True, calcArea=True))
                     if area[-1]<0.9:
-                        saveratioplot(signal1, bckgrd1, nice_plot_dict[va],  "signal", "background", ratio=False, return_area=False, calcArea=True, name = "cuts/distributions/"+va+sim_trigger[trigger])
+                        saveratioplot(signal1, bckgrd1, nice_plot_dict[va],  "H #rightarrow bb", "QCD multijet", ratio=False, return_area=False, calcArea=True, name = "cuts/distributions/"+va+sim_trigger[trigger])
 
                     del(signal1, bckgrd1)
 

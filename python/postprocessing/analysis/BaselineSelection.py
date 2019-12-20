@@ -14,7 +14,7 @@ elements = 10
 def deltaR(b, jets): #return min deltaR?
     delta = []
     for jet in jets:
-        delta.append(np.sqrt((b.eta-jet.eta)**2+(b.phi-jet.phi)**2))
+        delta.append(b.p4().DeltaR(jet.p4()))
         
     val, idx = min((val, idx) for (idx, val) in enumerate(delta))
     return(val, idx)
@@ -41,6 +41,7 @@ class BaselineSelection(Module):
         pass
     def beginJob(self):
         self.numevents = 0
+        self.counter = 0
         pass
     def endJob(self):
         pass
@@ -75,10 +76,23 @@ class BaselineSelection(Module):
         
             self.out.branch("wnrightjets", "I") # rightly assigned reconJets regarding W Boson
             self.out.branch("genjets_deltaR_W", "F") # deltaR between them
+            self.out.branch("genjets_deltaR_H", "F") # deltaR between them
             self.out.branch("genjets_WMass", "F")
             self.out.branch("wnrightjets_bad", "I") # using maximal pt jets
             self.out.branch("nrightjets", "I") # count of right connection between genjets and reconjets (max 2)
-            
+            self.out.branch("wnrightjetsdelta13", "I")
+            self.out.branch("wnrightjets_deltaandmass", "I")
+            self.out.branch("wnrightjets_maxptandmass", "I")
+            self.out.branch("wnrightjets_maxpt", "I")
+
+            self.out.branch("genjets_Hpt", "F")
+            self.out.branch("genjets_Wpt", "F")
+
+            self.out.branch("nrightjets_deltaandbtag", "I")
+            self.out.branch("nrightjets_delta", "I")
+            self.out.branch("nrightjets_maxptandbtag", "I")
+            self.out.branch("nrightjets_maxpt", "I")
+
             self.out.branch("wisright", "O", lenVar=str(2))
             self.out.branch("hisright", "O", lenVar=str(2))
 
@@ -268,7 +282,10 @@ class BaselineSelection(Module):
                 self.out.fillBranch("deltaR_W_jet1", delta3)
                 self.out.fillBranch("deltaR_W_jet2", delta4)
                 self.out.fillBranch("genjets_WMass", (genjets[index3].p4() + genjets[index4].p4()).M())
-                self.out.fillBranch("genjets_deltaR_W", np.sqrt((genjets[index3].eta-genjets[index4].eta)**2+(genjets[index3].phi-genjets[index4].phi)**2))
+                self.out.fillBranch("genjets_deltaR_W", genjets[index3].p4().DeltaR(genjets[index4].p4()))
+                self.out.fillBranch("genjets_deltaR_H", genjets[index1].p4().DeltaR(genjets[index2].p4()))
+                self.out.fillBranch("genjets_Hpt", (genjets[index1].p4()+genjets[index2].p4()).Pt())
+                self.out.fillBranch("genjets_Hpt", (genjets[index3].p4()+genjets[index4].p4()).Pt())
             except:
                 if prterrmsg:
                     print("The length of genjets is {}".format(len(genjets)))
@@ -383,6 +400,7 @@ class BaselineSelection(Module):
             #print(nrights)
             
             # * selecting favorite candidates: --------------------------------------------------
+            
             ncriteria = np.zeros(poss)
             ncriteria2 = np.zeros(poss)
             if poss > 1:
@@ -390,17 +408,59 @@ class BaselineSelection(Module):
                 helper1 = np.array(np.array(selBJets)[indexes2[:poss]])
                 helper2 = []
                 helper3 = []
-                
+                helper4 = []
+
                 for j, i in zip(helper, helper1):
                     helper2.append(j.btagDeepB)
                     helper3.append(i.btagDeepB)
-                
+                    helper4.append(i.pt + j.pt)
+
+
+
                 helper2=np.array(helper2)
                 helper3 = np.array(helper3)
                 
                 helper = helper2+helper3
                 s = max(enumerate(helper), key=itemgetter(1))[0]#[0]
+                s2,_ = second_smallest(helper)
+                Hindmaxpt = max(enumerate(helper4), key=itemgetter(1))[0]
+                Hindmaxpt2, _ = second_smallest(helper4)
+            
+            
+                #* ----------------------------------------------------------------
+                #* additional reconstruction stuff --------------------------------
+                #* ----------------------------------------------------------------
                 
+                Hinddelt = min(enumerate(abs(np.array(deltas)-3)), key=itemgetter(1))[0]
+                Hinddelt2, _ = second_smallest(abs(np.array(deltas)-3)) 
+
+                if Hindmaxpt == s:
+                    ptbtag = s
+                elif Hindmaxpt == s2 or Hindmaxpt2==s2:
+                    ptbtag = s2
+                else:
+                    ptbtag =s
+
+                if Hinddelt == s:
+                    deltbtag = s
+                elif Hinddelt == s2 or Hinddelt2 == s2:
+                    deltbtag =s2
+                else:
+                    deltbtag = s
+
+                if self.workingonS:
+                    self.out.fillBranch("nrightjets_deltaandbtag", nrights[deltbtag])
+                    self.out.fillBranch("nrightjets_maxpt", nrights[Hindmaxpt])
+                    self.out.fillBranch("nrightjets_maxptandbtag", nrights[ptbtag])
+                    self.out.fillBranch("nrightjets_delta", nrights[Hinddelt])
+
+
+                #* ----------------------------------------------------------------
+                #* ----------------------------------------------------------------
+                #* ----------------------------------------------------------------
+
+
+
                 #! additional stuff below
 
                 # helper2pt = []
@@ -514,6 +574,12 @@ class BaselineSelection(Module):
                 """
             else:
                 s=0
+                self.out.fillBranch("nrightjets_deltaandbtag", nrights[0])
+                self.out.fillBranch("nrightjets_maxpt", nrights[0])
+                self.out.fillBranch("nrightjets_maxptandbtag", nrights[0])
+                self.out.fillBranch("nrightjets_delta", nrights[0])
+
+
                 """ # variables used for analysis of best selection criteria
                 self.out.fillBranch("best_candidate_id_1", int(0))
                 self.out.fillBranch("candidate_score_1", -999)
@@ -541,7 +607,6 @@ class BaselineSelection(Module):
             
             # gathering biggest pts
             
-            tmp2 = [i.pt for i in tmp]
             windex1,value1 =  min(enumerate(tmp2), key=itemgetter(1))
             windex2, value2 = second_smallest(tmp2)
             
@@ -556,10 +621,13 @@ class BaselineSelection(Module):
                 self.out.fillBranch("wnrightjets_bad", wnright)
             
             
-            # figuring out which one is closest to WMass (~80GeV)
+            #* figuring out which one is closest to WMass (~80GeV)
             Wmasses = []
             Wind1 = []
             Wind2 = []
+            Wdeltas = []
+            Wpts = []
+
             for j, elj in enumerate(tmp):
                 for i, eli in enumerate(tmp):
                     if i>j:
@@ -567,10 +635,67 @@ class BaselineSelection(Module):
                         Wmasses.append(Wmass)
                         Wind1.append(j)
                         Wind2.append(i)
-                                    
+                        Wdeltas.append(elj.p4().DeltaR(eli.p4()))
+                        Wpts.append(elj.pt+eli.pt)
+
+
+            Windalt = min(enumerate(abs(np.array(Wdeltas)-1.3)), key=itemgetter(1))[0] 
             Wind = min(enumerate(abs(np.array(Wmasses)-80)), key=itemgetter(1))[0]
             W4 = tmp[Wind1[Wind]].p4()+tmp[Wind2[Wind]].p4()
+
+            Windmaxpt = min(enumerate(Wpts), key=itemgetter(1))[0] 
+
+
+            #* ----------------------------------------------------------------
+            #* additional reconstruction stuff --------------------------------
+            #* ----------------------------------------------------------------
             
+            Windalt2, _ = second_smallest(abs(np.array(Wdeltas)-1.3))
+            Wind22, _ = second_smallest(abs(np.array(Wmasses)-80))
+
+            if Wind == Windalt:
+                nmwind = Wind
+            elif Wind22 == Windalt:
+                nmwind = Wind22
+            else:
+                nmwind = Wind
+
+
+            if Wind == Windmaxpt:
+                ptwind = Wind
+            elif  Wind22 == Windmaxpt:
+                ptwind = Windmaxpt
+            else:
+                ptwind = Wind
+
+            if self.workingonS:
+                wnright = 0
+                if tmp[Wind1[nmwind]].genJetIdx == index3 or tmp[Wind1[nmwind]].genJetIdx == index4:
+                    wnright+=1
+                if tmp[Wind2[nmwind]].genJetIdx == index3 or tmp[Wind2[nmwind]].genJetIdx == index4:
+                    wnright+=1
+
+                self.out.fillBranch("wnrightjets_deltaandmass", wnright)
+
+                wnright = 0
+
+                if tmp[0].genJetIdx == index3 or tmp[1].genJetIdx == index3:
+                    wnright+=1 
+                if tmp[1].genJetIdx == index3 or tmp[1].genJetIdx == index3:
+                    wnright+=1 
+
+                self.out.fillBranch("wnrightjets_maxpt", wnright)
+                wnright = 0
+                if tmp[Wind1[ptwind]].genJetIdx == index3 or tmp[Wind1[ptwind]].genJetIdx == index4:
+                    wnright+=1
+                if tmp[Wind2[ptwind]].genJetIdx == index3 or tmp[Wind2[ptwind]].genJetIdx == index4:
+                    wnright+=1
+
+                self.out.fillBranch("wnrightjets_maxptandmass", wnright)
+
+            #* ----------------------------------------------------------------
+            #* ----------------------------------------------------------------
+            #* ----------------------------------------------------------------
 
             #deltaRW = np.sqrt((tmp[Wind1[Wind]].eta-tmp[Wind2[Wind]].eta)**2+(tmp[Wind1[Wind]].phi-tmp[Wind2[Wind]].phi)**2)
             deltaRW = tmp[Wind1[Wind]].p4().DeltaR(tmp[Wind2[Wind]].p4())
@@ -585,10 +710,18 @@ class BaselineSelection(Module):
                 if tmp[Wind2[Wind]].genJetIdx == index3 or tmp[Wind2[Wind]].genJetIdx == index4:
                     wnright+=1
                     isrights[1]=True
+                
                 self.out.fillBranch("wnrightjets", wnright)
                 self.out.fillBranch("wisright", isrights)
-            
-            
+
+                wnright = 0
+                if tmp[Wind1[Windalt]].genJetIdx == index3 or tmp[Wind1[Windalt]].genJetIdx == index4:
+                    wnright+=1
+                if tmp[Wind2[Windalt]].genJetIdx == index3 or tmp[Wind2[Windalt]].genJetIdx == index4:
+                    wnright+=1
+                
+                self.out.fillBranch("wnrightjetsdelta13", wnright)
+                
             self.out.fillBranch("recon_Wmass", Wmasses[Wind])
             self.out.fillBranch("recon_Wpt", W4.Pt())
             self.out.fillBranch("recon_Weta", W4.Eta())

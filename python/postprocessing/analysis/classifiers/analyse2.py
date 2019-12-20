@@ -24,10 +24,10 @@ if __name__=="__main__":
 
     setvarsdict = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40":{"MinNodeSize":"1%", "NTrees":400, "MaxDepth":3}, "HLT_PFHT180": {"MinNodeSize":"1%", "NTrees":1000, "MaxDepth":3}}
     
-    varoptions = {"NTrees":np.array([50, 100, 250, 400, 600, 1000], dtype = str), "MinNodeSize":["0.5", "1%", "2.5%", "5%", "7.5%", "10%"],\
+    varoptions = {"NTrees":np.array([50, 100, 250, 500, 1000], dtype = str), "MinNodeSize":["0.5", "1%", "2.5%", "5%", "10%"],\
         "BoostType":["AdaBoost", "RealAdaBoost", "Bagging", "Grad"],\
         "SeparationType":["CrossEntropy", "GiniIndex", "GiniIndexWithLaplace", "MisClassificationError", "SDivSqrtSplusB"],\
-        "VarTransform":["G","N", "D", "P", "U"], "MaxDepth":[3,4, 5, 7, 10, 15], "NodePurityLimit":[0.1, 0.3, 0.5, 0.7, 0.9], "UseFisherCuts":["True", "False"]
+        "VarTransform":["G","N", "D", "P", "U"], "MaxDepth":[2,3, 5, 10], "NodePurityLimit":[0.25, 0.5, 0.75]
         }
 
     #varoptions = { "BoostType":AdaBoost, "MaxDepth":[3], "NTrees":[500], "MinNodeSize":["2.5%"] }
@@ -77,8 +77,8 @@ if __name__=="__main__":
     #optionsdict = {"HLT_PFHT300PT30_QuadPFJet_75_60_45_40": ["VarTransform=U:BoostType=AdaBoost:SeparationType=CrossEntropy:MinNodeSize=1%:NTrees=400:MaxDepth=3"], \
     #   "HLT_PFHT180": ["VarTransform=U:BoostType=AdaBoost:SeparationType=MisClassificationError:MinNodeSize=1%:NTrees=400:MaxDepth=3"]}
 
-    for trigger in triggers:
-        for i in range(3):
+    for trigger in [triggers[1]]:
+        for i in range(2):
             for var in varoptions.keys():
                 for option in varoptions[var]:
                             options = "{}={}".format(var,option)
@@ -174,4 +174,4 @@ if __name__=="__main__":
                         #del(hist)
 
                         
-    dataexport.to_csv("run2/varyingall.csv")
+    dataexport.to_csv("run2/varyingall_ht180_6.csv")
